@@ -1,3 +1,5 @@
+using RaspiLedOkWeb.Helpers;
+
 namespace RaspiLedOkWeb.Models
 {
     public class ApiConfiguration
@@ -5,7 +7,22 @@ namespace RaspiLedOkWeb.Models
         public const string SectionName = "ApiConfiguration";
         public string Endpoint { get; set; } = string.Empty;
         public string Username { get; set; } = string.Empty;
-        public string Password { get; set; } = string.Empty;
+        private string _encryptedPassword;
+        public string Password
+        {
+            get => _encryptedPassword; // Returns encrypted value
+            set => _encryptedPassword = string.IsNullOrEmpty(value)
+                ? string.Empty
+                : CryptoHelper.PreEncrypt(value);
+        }
+        public int TimeoutSeconds { get; set; } = 30;
+        public bool EnableLogging { get; set; } = true;
+        public string GetDecryptedPassword()
+        {
+            return string.IsNullOrEmpty(_encryptedPassword)
+                ? string.Empty
+                : CryptoHelper.PreDecrypt(_encryptedPassword);
+        }
     }
 
     public class Assets

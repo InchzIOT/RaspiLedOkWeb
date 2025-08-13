@@ -38,9 +38,15 @@
                 </div>
                 
                 <div class="col-md-12">
-                    <label asp-for="Username" class="form-label">API Key</label>
-                    <input asp-for="Username" type="password" class="form-control" placeholder="Enter your API key" required>
-                    <div class="form-text">The authentication key for API access.</div>
+                    <label asp-for="Username" class="form-label">Username</label>
+                    <input asp-for="Username" type="text" class="form-control" placeholder="Enter your Username" required>
+                    <div class="form-text">The username of current led user.</div>
+                </div>
+
+                <div class="col-md-12">
+                    <label asp-for="Password" class="form-label">Password</label>
+                    <input asp-for="Password" type="password" class="form-control" placeholder="Enter your Password" required>
+                    <div class="form-text">The password for current led user.</div>
                 </div>
                 
                 <div class="col-md-6">
@@ -113,7 +119,7 @@
 <script>
 function testConnection() {
     const endpoint = document.querySelector('input[name="Endpoint"]').value;
-    const apiKey = document.querySelector('input[name="ApiKey"]').value;
+         const apiKey = document.querySelector('input[name="Username"]').value;
     
     if (!endpoint || !apiKey) {
         alert('Please enter both endpoint and API key before testing.');

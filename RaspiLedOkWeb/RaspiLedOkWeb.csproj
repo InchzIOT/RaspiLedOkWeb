@@ -6,4 +6,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Reference Include="Doggo.Data">
+      <HintPath>..\..\DoggoIOT_Core\Net8\Doggo.Data\bin\Debug\net8.0\Doggo.Data.dll</HintPath>
+    </Reference>
+    <Reference Include="JsonDataClass">
+      <HintPath>..\..\DoggoIOT_Core\Net8\Doggo.Data\bin\Debug\net8.0\JsonDataClass.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
 </Project>

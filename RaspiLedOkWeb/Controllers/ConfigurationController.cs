@@ -1,5 +1,7 @@
 using System.Diagnostics;
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.Mvc;
+using RaspiLedOkWeb.Helpers;
 using RaspiLedOkWeb.Models;
 using RaspiLedOkWeb.Services;
 
@@ -57,11 +59,12 @@ namespace RaspiLedOkWeb.Controllers
             {
                 var configuration = _apiConfigurationService.GetConfiguration();
                 
-                // Return configuration without exposing the full API key for security
+                // Return configuration without exposing sensitive data
                 var safeConfiguration = new
                 {
                     Endpoint = configuration.Endpoint,
-                    ApiKeyMasked = MaskApiKey(configuration.Username),
+                    Username = configuration.Username,
+                    Password = configuration.Password,
                     TimeoutSeconds = configuration.TimeoutSeconds,
                     EnableLogging = configuration.EnableLogging
                 };
@@ -72,6 +75,41 @@ namespace RaspiLedOkWeb.Controllers
             {
                 _logger.LogError(ex, "Error retrieving API configuration");
                 return StatusCode(500, "Internal server error");
+            }
+        }
+
+        [HttpPost]
+        public IActionResult TestConnection()
+        {
+            try
+            {
+                var configuration = _apiConfigurationService.GetConfiguration();
+                
+                if (!_apiConfigurationService.ValidateConfiguration(configuration))
+                {
+                    return Json(new { success = false, message = "Invalid configuration. Please check all fields." });
+                }
+
+                // Here you would implement actual API connection testing
+                // For now, we'll just validate the URL format
+                if (Uri.TryCreate(configuration.Endpoint, UriKind.Absolute, out var uri))
+                {
+                    // You can add actual HTTP request testing here
+                    return Json(new { 
+                        success = true, 
+                        message = $"Configuration appears valid. Endpoint: {configuration.Endpoint}",
+                        timestamp = DateTime.UtcNow 
+                    });
+                }
+                else
+                {
+                    return Json(new { success = false, message = "Invalid endpoint URL format." });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error testing API connection");
+                return Json(new { success = false, message = "Error testing connection." });
             }
         }
 

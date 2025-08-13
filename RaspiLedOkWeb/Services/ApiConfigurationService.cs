@@ -1,3 +1,4 @@
+using JsonDataClass;
 using Microsoft.Extensions.Options;
 using RaspiLedOkWeb.Helpers;
 using RaspiLedOkWeb.Models;
@@ -89,7 +90,9 @@ namespace RaspiLedOkWeb.Services
                 {
                     ["Endpoint"] = configuration.Endpoint,
                     ["Username"] = configuration.Username,
-                    ["Password"] = CryptoHelper.PreEncrypt(configuration.Password),
+                    ["Password"] = configuration.Password,
+                    ["TimeoutSeconds"] = configuration.TimeoutSeconds,
+                    ["EnableLogging"] = configuration.EnableLogging
                 };
 
                 settingsDict[ApiConfiguration.SectionName] = apiConfigDict;
@@ -128,19 +131,25 @@ namespace RaspiLedOkWeb.Services
 
             if (string.IsNullOrWhiteSpace(configuration.Username))
             {
-                _logger.LogWarning("Username is required");
+                _logger.LogWarning("API Key (Username) is required");
                 return false;
             }
 
             if (string.IsNullOrWhiteSpace(configuration.Password))
             {
-                _logger.LogWarning("Password is required");
+                _logger.LogWarning("API Key (Password) is required");
                 return false;
             }
 
             if (!Uri.TryCreate(configuration.Endpoint, UriKind.Absolute, out _))
             {
                 _logger.LogWarning("Invalid API endpoint URL format");
+                return false;
+            }
+
+            if (configuration.TimeoutSeconds <= 0 || configuration.TimeoutSeconds > 300)
+            {
+                _logger.LogWarning("Timeout must be between 1 and 300 seconds");
                 return false;
             }
 
