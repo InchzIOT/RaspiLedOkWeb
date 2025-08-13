@@ -7,25 +7,20 @@ using System.Text.Json;
 
 namespace RaspiLedOkWeb.Services
 {
-    public class SyncService : ISyncService
+    public class SyncService(
+        ILogger<SyncService> logger,
+        IWebHostEnvironment environment,
+        HttpClient httpClient,
+        IApiConfigurationService configService) : ISyncService
     {
-        private readonly ILogger<SyncService> _logger;
-        private readonly IWebHostEnvironment _environment;
-        private readonly HttpClient _httpClient;
-        private readonly IApiConfigurationService _configService;
+        #region Properties
+        private readonly ILogger<SyncService> _logger = logger;
+        private readonly IWebHostEnvironment _environment = environment;
+        private readonly HttpClient _httpClient = httpClient;
+        private readonly IApiConfigurationService _configService = configService;
+        #endregion
 
-        public SyncService(
-            ILogger<SyncService> logger, 
-            IWebHostEnvironment environment,
-            HttpClient httpClient,
-            IApiConfigurationService configService)
-        {
-            _environment = environment;
-            _logger = logger;
-            _httpClient = httpClient;
-            _configService = configService;
-        }
-
+        #region Authentication
         public async Task<JsonAuthResponse> Login(JsonAuth jsonAuth)
         {
             return await Login(jsonAuth.Username, jsonAuth.Password);
@@ -87,7 +82,9 @@ namespace RaspiLedOkWeb.Services
                 };
             }
         }
+        #endregion
 
+        #region Devices
         public async Task<JsonDeviceListResponse> GetDeviceListByAsset(int assetId)
         {
             try
@@ -130,5 +127,11 @@ namespace RaspiLedOkWeb.Services
                 };
             }
         }
+        #endregion
+
+        #region Telemetry
+
+        #endregion
+
     }
 }

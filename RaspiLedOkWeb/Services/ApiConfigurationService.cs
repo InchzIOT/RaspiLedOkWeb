@@ -6,26 +6,25 @@ using System.Text.Json;
 
 namespace RaspiLedOkWeb.Services
 {
-    public class ApiConfigurationService : IApiConfigurationService
+    public class ApiConfigurationService(
+        IOptionsMonitor<ApiConfiguration> options,
+        IConfiguration configuration,
+        ILogger<ApiConfigurationService> logger,
+        IWebHostEnvironment environment) : IApiConfigurationService
     {
-        private readonly IOptionsMonitor<ApiConfiguration> _options;
-        private readonly IConfiguration _configuration;
-        private readonly ILogger<ApiConfigurationService> _logger;
-        private readonly IWebHostEnvironment _environment;
+        #region Properties
+        private readonly IOptionsMonitor<ApiConfiguration> _options = options;
+        private readonly IConfiguration _configuration = configuration;
+        private readonly ILogger<ApiConfigurationService> _logger = logger;
+        private readonly IWebHostEnvironment _environment = environment;
         private ApiConfiguration? _cachedConfiguration;
+        #endregion
 
-        public ApiConfigurationService(
-            IOptionsMonitor<ApiConfiguration> options,
-            IConfiguration configuration,
-            ILogger<ApiConfigurationService> logger,
-            IWebHostEnvironment environment)
-        {
-            _options = options;
-            _configuration = configuration;
-            _logger = logger;
-            _environment = environment;
-        }
+        #region Screen Configuration
 
+        #endregion
+
+        #region Api Configuration
         public ApiConfiguration GetConfiguration()
         {
             if (_cachedConfiguration == null)
@@ -53,66 +52,6 @@ namespace RaspiLedOkWeb.Services
             
             _logger.LogInformation("API configuration updated and persisted: Endpoint={Endpoint}", 
                 configuration.Endpoint);
-        }
-
-        private async Task UpdateAppSettingsFileAsync(ApiConfiguration configuration)
-        {
-            try
-            {
-                // Determine which appsettings file to update based on environment
-                var fileName = _environment.IsDevelopment() 
-                    ? "appsettings.Development.json" 
-                    : "appsettings.json";
-                
-                var filePath = Path.Combine(_environment.ContentRootPath, fileName);
-                
-                if (!File.Exists(filePath))
-                {
-                    _logger.LogWarning("Settings file not found: {FilePath}", filePath);
-                    return;
-                }
-
-                // Read the current settings file
-                var jsonString = await File.ReadAllTextAsync(filePath);
-                
-                // Parse as JsonNode for easier manipulation while preserving structure
-                using var jsonDocument = JsonDocument.Parse(jsonString);
-                var settingsDict = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonDocument.RootElement);
-                
-                if (settingsDict == null)
-                {
-                    _logger.LogError("Failed to parse settings file");
-                    return;
-                }
-
-                // Update the ApiConfiguration section
-                var apiConfigDict = new Dictionary<string, object>
-                {
-                    ["Endpoint"] = configuration.Endpoint,
-                    ["Username"] = configuration.Username,
-                    ["Password"] = configuration.Password,
-                    ["TimeoutSeconds"] = configuration.TimeoutSeconds,
-                    ["EnableLogging"] = configuration.EnableLogging
-                };
-
-                settingsDict[ApiConfiguration.SectionName] = apiConfigDict;
-
-                // Write back to file with proper formatting
-                var options = new JsonSerializerOptions
-                {
-                    WriteIndented = true
-                };
-                
-                var updatedJson = JsonSerializer.Serialize(settingsDict, options);
-                await File.WriteAllTextAsync(filePath, updatedJson);
-                
-                _logger.LogInformation("Settings file updated: {FilePath}", filePath);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to update settings file");
-                throw;
-            }
         }
 
         public bool ValidateConfiguration(ApiConfiguration configuration)
@@ -155,7 +94,9 @@ namespace RaspiLedOkWeb.Services
 
             return true;
         }
+        #endregion
 
+        #region Assets Configuration
         public List<Asset> GetAssets()
         {
             try
@@ -184,20 +125,20 @@ namespace RaspiLedOkWeb.Services
                 throw;
             }
         }
+        #endregion
 
-
-
-        private async Task UpdateSectionInSettingsFileAsync<T>(string sectionName, T data)
+        #region Helpers
+        private async Task UpdateAppSettingsFileAsync(ApiConfiguration configuration)
         {
             try
             {
                 // Determine which appsettings file to update based on environment
-                var fileName = _environment.IsDevelopment() 
-                    ? "appsettings.Development.json" 
+                var fileName = _environment.IsDevelopment()
+                    ? "appsettings.Development.json"
                     : "appsettings.json";
-                
+
                 var filePath = Path.Combine(_environment.ContentRootPath, fileName);
-                
+
                 if (!File.Exists(filePath))
                 {
                     _logger.LogWarning("Settings file not found: {FilePath}", filePath);
@@ -206,10 +147,70 @@ namespace RaspiLedOkWeb.Services
 
                 // Read the current settings file
                 var jsonString = await File.ReadAllTextAsync(filePath);
-                
+
+                // Parse as JsonNode for easier manipulation while preserving structure
                 using var jsonDocument = JsonDocument.Parse(jsonString);
                 var settingsDict = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonDocument.RootElement);
-                
+
+                if (settingsDict == null)
+                {
+                    _logger.LogError("Failed to parse settings file");
+                    return;
+                }
+
+                // Update the ApiConfiguration section
+                var apiConfigDict = new Dictionary<string, object>
+                {
+                    ["Endpoint"] = configuration.Endpoint,
+                    ["Username"] = configuration.Username,
+                    ["Password"] = configuration.Password,
+                    ["TimeoutSeconds"] = configuration.TimeoutSeconds,
+                    ["EnableLogging"] = configuration.EnableLogging
+                };
+
+                settingsDict[ApiConfiguration.SectionName] = apiConfigDict;
+
+                // Write back to file with proper formatting
+                var options = new JsonSerializerOptions
+                {
+                    WriteIndented = true
+                };
+
+                var updatedJson = JsonSerializer.Serialize(settingsDict, options);
+                await File.WriteAllTextAsync(filePath, updatedJson);
+
+                _logger.LogInformation("Settings file updated: {FilePath}", filePath);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to update settings file");
+                throw;
+            }
+        }
+
+        private async Task UpdateSectionInSettingsFileAsync<T>(string sectionName, T data)
+        {
+            try
+            {
+                // Determine which appsettings file to update based on environment
+                var fileName = _environment.IsDevelopment()
+                    ? "appsettings.Development.json"
+                    : "appsettings.json";
+
+                var filePath = Path.Combine(_environment.ContentRootPath, fileName);
+
+                if (!File.Exists(filePath))
+                {
+                    _logger.LogWarning("Settings file not found: {FilePath}", filePath);
+                    return;
+                }
+
+                // Read the current settings file
+                var jsonString = await File.ReadAllTextAsync(filePath);
+
+                using var jsonDocument = JsonDocument.Parse(jsonString);
+                var settingsDict = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonDocument.RootElement);
+
                 if (settingsDict == null)
                 {
                     _logger.LogError("Failed to parse settings file");
@@ -224,10 +225,10 @@ namespace RaspiLedOkWeb.Services
                 {
                     WriteIndented = true
                 };
-                
+
                 var updatedJson = JsonSerializer.Serialize(settingsDict, options);
                 await File.WriteAllTextAsync(filePath, updatedJson);
-                
+
                 _logger.LogInformation("Settings section {SectionName} updated in file: {FilePath}", sectionName, filePath);
             }
             catch (Exception ex)
@@ -236,5 +237,6 @@ namespace RaspiLedOkWeb.Services
                 throw;
             }
         }
+        #endregion
     }
 }

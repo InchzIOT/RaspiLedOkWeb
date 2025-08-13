@@ -2,6 +2,12 @@ using RaspiLedOkWeb.Helpers;
 
 namespace RaspiLedOkWeb.Models
 {
+    public class ScreenConfiguration
+    {
+        public string Width { get; set; }
+        public string Height { get; set; }
+    }
+
     public class ApiConfiguration
     {
         public const string SectionName = "ApiConfiguration";
@@ -25,23 +31,25 @@ namespace RaspiLedOkWeb.Models
         }
     }
 
-    public class Assets
+    public class ConfigurationAssets
     {
-        public const string SectionName = "Assets";
-        public EntityAttributes[] AssetList { get; set; }
+        public List<Asset> Assets { get; set; }
     }
 
-    public class Devices
-    {
-        public const string SectionName = "Devices";
-        public EntityAttributes[] DeviceList { get; set; }
-    }
-
-    public class EntityAttributes
+    public class Asset
     {
         public string Name { get; set; }
         public string Id { get; set; }
-        public bool IsEnabled { get; set; } // To show in this dashboard or not
-        public int Interval { get; set; }    // In seconds
+        public bool IsEnabled { get; set; }
+        public int Interval { get; set; }
+        public List<Device> Devices { get; set; }
+    }
+
+    public class Device
+    {
+        public string Name { get; set; }
+        public string Id { set; get; }
+        public bool IsEnabled { get; set; }
+        public int Interval { get; set; }
     }
 }
