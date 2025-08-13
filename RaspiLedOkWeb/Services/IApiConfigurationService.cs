@@ -10,7 +10,7 @@ namespace RaspiLedOkWeb.Services
         ApiConfiguration GetConfiguration();
         Task UpdateConfigurationAsync(ApiConfiguration configuration);
         bool ValidateConfiguration(ApiConfiguration configuration);
-        JsonAsset[] GetAssets();
-        Task UpdateAssets(JsonAsset[] assets);
+        List<Asset> GetAssets();
+        Task UpdateAssetsAsync(ConfigurationAssets configurationAssets);
     }
 }

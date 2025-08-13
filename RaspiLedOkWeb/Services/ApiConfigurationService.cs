@@ -155,5 +155,86 @@ namespace RaspiLedOkWeb.Services
 
             return true;
         }
+
+        public List<Asset> GetAssets()
+        {
+            try
+            {
+                var assetsSection = _configuration.GetSection("Assets");
+                var assets = assetsSection.Get<List<Asset>>();
+                return assets ?? new List<Asset>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error reading assets from configuration");
+                return new List<Asset>();
+            }
+        }
+
+        public async Task UpdateAssetsAsync(ConfigurationAssets configurationAssets)
+        {
+            try
+            {
+                await UpdateSectionInSettingsFileAsync("Assets", configurationAssets.Assets);
+                _logger.LogInformation("Assets updated successfully. Count: {Count}", configurationAssets.Assets.Count);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating assets");
+                throw;
+            }
+        }
+
+
+
+        private async Task UpdateSectionInSettingsFileAsync<T>(string sectionName, T data)
+        {
+            try
+            {
+                // Determine which appsettings file to update based on environment
+                var fileName = _environment.IsDevelopment() 
+                    ? "appsettings.Development.json" 
+                    : "appsettings.json";
+                
+                var filePath = Path.Combine(_environment.ContentRootPath, fileName);
+                
+                if (!File.Exists(filePath))
+                {
+                    _logger.LogWarning("Settings file not found: {FilePath}", filePath);
+                    return;
+                }
+
+                // Read the current settings file
+                var jsonString = await File.ReadAllTextAsync(filePath);
+                
+                using var jsonDocument = JsonDocument.Parse(jsonString);
+                var settingsDict = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonDocument.RootElement);
+                
+                if (settingsDict == null)
+                {
+                    _logger.LogError("Failed to parse settings file");
+                    return;
+                }
+
+                // Update the specified section
+                settingsDict[sectionName] = data;
+
+                // Write back to file with proper formatting
+                var options = new JsonSerializerOptions
+                {
+                    WriteIndented = true
+                };
+                
+                var updatedJson = JsonSerializer.Serialize(settingsDict, options);
+                await File.WriteAllTextAsync(filePath, updatedJson);
+                
+                _logger.LogInformation("Settings section {SectionName} updated in file: {FilePath}", sectionName, filePath);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to update settings section {SectionName}", sectionName);
+                throw;
+            }
+        }
     }
 }

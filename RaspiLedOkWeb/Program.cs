@@ -13,7 +13,8 @@ builder.Services.Configure<ApiConfiguration>(
 // Register API configuration service
 builder.Services.AddSingleton<IApiConfigurationService, ApiConfigurationService>();
 
-// Additional services can be registered here as needed
+// Register HTTP client and sync service
+builder.Services.AddHttpClient<ISyncService, SyncService>();
 
 var app = builder.Build();
 
