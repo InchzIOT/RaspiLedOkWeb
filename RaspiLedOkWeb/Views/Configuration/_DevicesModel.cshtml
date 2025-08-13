@@ -1,0 +1,7 @@
+﻿@model RaspiLedOkWeb.Models.Devices
+
+@foreach (EntityAttributes device in Model.DeviceList)
+{
+    @await Html.PartialAsync("_EntityAttribute", device)
+}
+

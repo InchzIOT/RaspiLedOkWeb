@@ -1,0 +1,150 @@
+using Microsoft.Extensions.Options;
+using RaspiLedOkWeb.Helpers;
+using RaspiLedOkWeb.Models;
+using System.Text.Json;
+
+namespace RaspiLedOkWeb.Services
+{
+    public class ApiConfigurationService : IApiConfigurationService
+    {
+        private readonly IOptionsMonitor<ApiConfiguration> _options;
+        private readonly IConfiguration _configuration;
+        private readonly ILogger<ApiConfigurationService> _logger;
+        private readonly IWebHostEnvironment _environment;
+        private ApiConfiguration? _cachedConfiguration;
+
+        public ApiConfigurationService(
+            IOptionsMonitor<ApiConfiguration> options,
+            IConfiguration configuration,
+            ILogger<ApiConfigurationService> logger,
+            IWebHostEnvironment environment)
+        {
+            _options = options;
+            _configuration = configuration;
+            _logger = logger;
+            _environment = environment;
+        }
+
+        public ApiConfiguration GetConfiguration()
+        {
+            if (_cachedConfiguration == null)
+            {
+                _cachedConfiguration = _options.CurrentValue;
+                _logger.LogInformation("API configuration loaded: Endpoint={Endpoint}", 
+                    _cachedConfiguration.Endpoint);
+            }
+            
+            return _cachedConfiguration;
+        }
+
+        public async Task UpdateConfigurationAsync(ApiConfiguration configuration)
+        {
+            if (!ValidateConfiguration(configuration))
+            {
+                throw new ArgumentException("Invalid configuration provided");
+            }
+
+            // Update the cached configuration
+            _cachedConfiguration = configuration;
+            
+            // Update the appsettings.json file
+            await UpdateAppSettingsFileAsync(configuration);
+            
+            _logger.LogInformation("API configuration updated and persisted: Endpoint={Endpoint}", 
+                configuration.Endpoint);
+        }
+
+        private async Task UpdateAppSettingsFileAsync(ApiConfiguration configuration)
+        {
+            try
+            {
+                // Determine which appsettings file to update based on environment
+                var fileName = _environment.IsDevelopment() 
+                    ? "appsettings.Development.json" 
+                    : "appsettings.json";
+                
+                var filePath = Path.Combine(_environment.ContentRootPath, fileName);
+                
+                if (!File.Exists(filePath))
+                {
+                    _logger.LogWarning("Settings file not found: {FilePath}", filePath);
+                    return;
+                }
+
+                // Read the current settings file
+                var jsonString = await File.ReadAllTextAsync(filePath);
+                
+                // Parse as JsonNode for easier manipulation while preserving structure
+                using var jsonDocument = JsonDocument.Parse(jsonString);
+                var settingsDict = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonDocument.RootElement);
+                
+                if (settingsDict == null)
+                {
+                    _logger.LogError("Failed to parse settings file");
+                    return;
+                }
+
+                // Update the ApiConfiguration section
+                var apiConfigDict = new Dictionary<string, object>
+                {
+                    ["Endpoint"] = configuration.Endpoint,
+                    ["Username"] = configuration.Username,
+                    ["Password"] = CryptoHelper.PreEncrypt(configuration.Password),
+                };
+
+                settingsDict[ApiConfiguration.SectionName] = apiConfigDict;
+
+                // Write back to file with proper formatting
+                var options = new JsonSerializerOptions
+                {
+                    WriteIndented = true
+                };
+                
+                var updatedJson = JsonSerializer.Serialize(settingsDict, options);
+                await File.WriteAllTextAsync(filePath, updatedJson);
+                
+                _logger.LogInformation("Settings file updated: {FilePath}", filePath);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to update settings file");
+                throw;
+            }
+        }
+
+        public bool ValidateConfiguration(ApiConfiguration configuration)
+        {
+            if (configuration == null)
+            {
+                _logger.LogWarning("Configuration is null");
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(configuration.Endpoint))
+            {
+                _logger.LogWarning("API endpoint is required");
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(configuration.Username))
+            {
+                _logger.LogWarning("Username is required");
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(configuration.Password))
+            {
+                _logger.LogWarning("Password is required");
+                return false;
+            }
+
+            if (!Uri.TryCreate(configuration.Endpoint, UriKind.Absolute, out _))
+            {
+                _logger.LogWarning("Invalid API endpoint URL format");
+                return false;
+            }
+
+            return true;
+        }
+    }
+}

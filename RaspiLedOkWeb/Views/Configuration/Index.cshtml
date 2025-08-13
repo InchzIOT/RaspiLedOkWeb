@@ -1,0 +1,140 @@
+@model RaspiLedOkWeb.Models.ApiConfiguration
+
+@{
+    ViewData["Title"] = "API Configuration";
+}
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-8">
+            <h2>API Configuration</h2>
+            <p class="text-muted">Configure the API endpoint and authentication settings that will be shared across all clients.</p>
+            
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    @TempData["SuccessMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+            
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="alert alert-danger">
+                    <ul class="mb-0">
+                        @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                        {
+                            <li>@error.ErrorMessage</li>
+                        }
+                    </ul>
+                </div>
+            }
+            
+            <form asp-action="UpdateConfiguration" method="post" class="row g-3">
+                <div class="col-md-12">
+                    <label asp-for="Endpoint" class="form-label">API Endpoint</label>
+                    <input asp-for="Endpoint" type="url" class="form-control" placeholder="https://api.example.com/v1" required>
+                    <div class="form-text">The base URL for the API endpoint.</div>
+                </div>
+                
+                <div class="col-md-12">
+                    <label asp-for="Username" class="form-label">API Key</label>
+                    <input asp-for="Username" type="password" class="form-control" placeholder="Enter your API key" required>
+                    <div class="form-text">The authentication key for API access.</div>
+                </div>
+                
+                <div class="col-md-6">
+                    <label asp-for="TimeoutSeconds" class="form-label">Timeout (seconds)</label>
+                    <input asp-for="TimeoutSeconds" type="number" class="form-control" min="1" max="300" required>
+                    <div class="form-text">Request timeout in seconds (1-300).</div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="form-check mt-4">
+                        <input asp-for="EnableLogging" class="form-check-input" type="checkbox">
+                        <label class="form-check-label" asp-for="EnableLogging">
+                            Enable API Logging
+                        </label>
+                        <div class="form-text">Log API requests and responses for debugging.</div>
+                    </div>
+                </div>
+                
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">Update Configuration</button>
+                    <button type="button" class="btn btn-secondary" onclick="testConnection()">Test Connection</button>
+                </div>
+            </form>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Current Configuration</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-4">Endpoint:</dt>
+                        <dd class="col-sm-8"><small class="text-break">@Model.Endpoint</small></dd>
+                        
+                        <dt class="col-sm-4">API Key:</dt>
+                        <dd class="col-sm-8"><small>@(string.IsNullOrEmpty(Model.Username) ? "Not set" : "****" + Model.Username.Substring(Math.Max(0, Model.Username.Length - 4)))</small></dd>
+                        
+                        <dt class="col-sm-4">Timeout:</dt>
+                        <dd class="col-sm-8"><small>@Model.TimeoutSeconds seconds</small></dd>
+                        
+                        <dt class="col-sm-4">Logging:</dt>
+                        <dd class="col-sm-8">
+                            <span class="badge @(Model.EnableLogging ? "bg-success" : "bg-secondary")">
+                                @(Model.EnableLogging ? "Enabled" : "Disabled")
+                            </span>
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+            
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">API Usage</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        This configuration will be shared across all clients connecting to your application.
+                        Make sure to use secure API keys and endpoints.
+                    </p>
+                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="refreshConfiguration()">
+                        Refresh Config
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function testConnection() {
+    const endpoint = document.querySelector('input[name="Endpoint"]').value;
+    const apiKey = document.querySelector('input[name="ApiKey"]').value;
+    
+    if (!endpoint || !apiKey) {
+        alert('Please enter both endpoint and API key before testing.');
+        return;
+    }
+    
+    // Here you would implement actual connection testing
+    alert('Connection test would be performed here. Check browser console for details.');
+    console.log('Testing connection to:', endpoint);
+}
+
+function refreshConfiguration() {
+    fetch('/Configuration/GetApiConfiguration')
+        .then(response => response.json())
+        .then(data => {
+            console.log('Current configuration:', data);
+            alert('Configuration refreshed. Check browser console for details.');
+        })
+        .catch(error => {
+            console.error('Error fetching configuration:', error);
+            alert('Error fetching configuration.');
+        });
+}
+</script>
