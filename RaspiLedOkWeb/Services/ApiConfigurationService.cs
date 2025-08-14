@@ -27,12 +27,10 @@ namespace RaspiLedOkWeb.Services
         #region Api Configuration
         public ApiConfiguration GetConfiguration()
         {
-            if (_cachedConfiguration == null)
-            {
-                _cachedConfiguration = _options.CurrentValue;
-                _logger.LogInformation("API configuration loaded: Endpoint={Endpoint}", 
-                    _cachedConfiguration.ApiUrl);
-            }
+            // Always get the current value to ensure we have the latest configuration
+            _cachedConfiguration = _options.CurrentValue;
+            _logger.LogInformation("API configuration loaded: Endpoint={Endpoint}", 
+                _cachedConfiguration.ApiUrl);
             
             return _cachedConfiguration;
         }
@@ -161,7 +159,7 @@ namespace RaspiLedOkWeb.Services
                 // Update the ApiConfiguration section
                 var apiConfigDict = new Dictionary<string, object>
                 {
-                    ["Endpoint"] = configuration.ApiUrl,
+                    ["ApiUrl"] = configuration.ApiUrl,
                     ["Username"] = configuration.Username,
                     ["Password"] = configuration.Password,
                     ["TimeoutSeconds"] = configuration.TimeoutSeconds,

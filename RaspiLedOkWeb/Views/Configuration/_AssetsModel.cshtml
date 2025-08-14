@@ -1,7 +1,0 @@
-﻿@model RaspiLedOkWeb.Models.ConfigurationAssets
-
-@foreach (Asset asset in Model.Assets)
-{
-    @await Html.PartialAsync("_EntityAttribute", asset)
-}
-

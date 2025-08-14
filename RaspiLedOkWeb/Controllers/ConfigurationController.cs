@@ -11,13 +11,16 @@ namespace RaspiLedOkWeb.Controllers
     {
         private readonly ILogger<ConfigurationController> _logger;
         private readonly IApiConfigurationService _apiConfigurationService;
+        private readonly ISyncService _syncService;
 
         public ConfigurationController(
             ILogger<ConfigurationController> logger,
-            IApiConfigurationService apiConfigurationService)
+            IApiConfigurationService apiConfigurationService,
+            ISyncService syncService)
         {
             _logger = logger;
             _apiConfigurationService = apiConfigurationService;
+            _syncService = syncService;
         }
 
         public IActionResult Index()
@@ -110,6 +113,182 @@ namespace RaspiLedOkWeb.Controllers
             {
                 _logger.LogError(ex, "Error testing API connection");
                 return Json(new { success = false, message = "Error testing connection." });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> SyncAssets()
+        {
+            try
+            {
+                var configRes = _apiConfigurationService.GetConfiguration();
+                
+                // Check if we have valid configuration
+                if (!_apiConfigurationService.ValidateConfiguration(configRes))
+                {
+                    return Json(new { success = false, message = "Please configure valid API credentials first." });
+                }
+
+                _logger.LogInformation("Starting asset sync from configuration page");
+                
+                // Login using configured credentials
+                var loginRes = await _syncService.Login(configRes.Username, configRes.GetDecryptedPassword());
+                
+                if (loginRes.Success && loginRes.AuthHeader?.Assets != null)
+                {
+                    _logger.LogInformation("Login successful, found {Count} assets", loginRes.AuthHeader.Assets.Count);
+
+                    ConfigurationAssets configAssets = new ConfigurationAssets()
+                    {
+                        Assets = new List<Asset>()
+                    };
+                    var totalDevices = 0;
+
+                    // Fetch devices for each asset
+                    foreach (var asset in loginRes.AuthHeader.Assets)
+                    {
+                        Asset configAsset = new Asset()
+                        {
+                            Name = asset.Name,
+                            Id = asset.AssetId.ToString(),
+                            IsEnabled = true,
+                            Interval = 1000,
+                            Devices = new List<Device>()
+                        };
+
+                        try
+                        {
+                            // Use AssetId directly since it's already an int
+                            var deviceResponse = await _syncService.GetDeviceListByAsset(asset.AssetId);
+                            if (deviceResponse.Success && deviceResponse.Devices != null)
+                            {
+                                foreach (var device in deviceResponse.Devices)
+                                {
+                                    Device configDevice = new Device()
+                                    {
+                                        Name = device.DeviceName,
+                                        Id = device.DeviceId.ToString(),
+                                        IsEnabled = true,
+                                        Interval = 1000
+                                    };
+                                    configAsset.Devices.Add(configDevice);
+                                }
+
+                                totalDevices += deviceResponse.Devices.Count;
+                                _logger.LogInformation("Fetched {Count} devices for asset {AssetName}", deviceResponse.Devices.Count, asset.Name);
+                            }
+                            else
+                            {
+                                _logger.LogWarning("Failed to fetch devices for asset {AssetName}: {Message}", asset.Name, deviceResponse.Message);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Error fetching devices for asset {AssetName}", asset.Name);
+                            configAsset.Devices = new List<Device>();
+                        }
+                        
+                        // Add the configured asset to our collection
+                        configAssets.Assets.Add(configAsset);
+                    }
+                    
+                    // Save assets with their fetched devices to appsettings.json
+                    await _apiConfigurationService.UpdateAssetsAsync(configAssets);
+                    
+                    var message = $"Successfully synced {configAssets.Assets.Count} assets with {totalDevices} total devices from API.";
+                    _logger.LogInformation(message);
+                    
+                    return Json(new { 
+                        success = true, 
+                        message = message,
+                        assetsCount = configAssets.Assets.Count,
+                        devicesCount = totalDevices
+                    });
+                }
+                else
+                {
+                    var errorMsg = loginRes.Success ? "No assets found in response" : loginRes.Message;
+                    _logger.LogWarning("Login or asset fetch failed: {Error}", errorMsg);
+                    return Json(new { success = false, message = $"Failed to fetch assets: {errorMsg}" });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during asset sync");
+                return Json(new { success = false, message = $"Error occurred during sync: {ex.Message}" });
+            }
+        }
+
+        [HttpGet]
+        public IActionResult GetAssets()
+        {
+            try
+            {
+                var assets = _apiConfigurationService.GetAssets();
+                return Json(new { success = true, assets = assets });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving assets");
+                return Json(new { success = false, message = "Error retrieving assets" });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> UpdateAssetEnabled(string assetId, bool isEnabled)
+        {
+            try
+            {
+                var assets = _apiConfigurationService.GetAssets();
+                var asset = assets.FirstOrDefault(a => a.Id == assetId);
+                
+                if (asset == null)
+                {
+                    return Json(new { success = false, message = "Asset not found" });
+                }
+
+                asset.IsEnabled = isEnabled;
+                
+                await _apiConfigurationService.UpdateAssetsAsync(new ConfigurationAssets { Assets = assets });
+                
+                return Json(new { success = true, message = $"Asset {asset.Name} {(isEnabled ? "enabled" : "disabled")}" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating asset enabled state");
+                return Json(new { success = false, message = "Error updating asset" });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> UpdateDeviceEnabled(string assetId, string deviceId, bool isEnabled)
+        {
+            try
+            {
+                var assets = _apiConfigurationService.GetAssets();
+                var asset = assets.FirstOrDefault(a => a.Id == assetId);
+                
+                if (asset == null)
+                {
+                    return Json(new { success = false, message = "Asset not found" });
+                }
+
+                var device = asset.Devices.FirstOrDefault(d => d.Id == deviceId);
+                if (device == null)
+                {
+                    return Json(new { success = false, message = "Device not found" });
+                }
+
+                device.IsEnabled = isEnabled;
+                
+                await _apiConfigurationService.UpdateAssetsAsync(new ConfigurationAssets { Assets = assets });
+                
+                return Json(new { success = true, message = $"Device {device.Name} {(isEnabled ? "enabled" : "disabled")}" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating device enabled state");
+                return Json(new { success = false, message = "Error updating device" });
             }
         }
 

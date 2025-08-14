@@ -1,0 +1,74 @@
+@model RaspiLedOkWeb.Models.ApiConfiguration
+
+<!-- Ultra Modern API Configuration Card -->
+<div class="card shadow-colored mb-5 bounce-in premium-glow">
+    <div class="card-header">
+        <div class="d-flex align-items-center">
+            <div class="p-2 rounded-circle me-3" style="background: var(--primary-gradient-light);">
+                <i class="bi bi-cloud-arrow-up text-primary fs-4"></i>
+            </div>
+            <div>
+                <h5 class="mb-0 fw-bold">API Configuration</h5>
+                <small class="text-muted">Configure your API connection settings</small>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <form asp-action="UpdateConfiguration" method="post" class="row g-4">
+            <div class="col-12">
+                <label asp-for="ApiUrl" class="form-label">
+                    <i class="bi bi-globe2"></i>API Endpoint
+                </label>
+                <input asp-for="ApiUrl" type="url" class="form-control border-gradient" placeholder="https://your-api-endpoint.com" required>
+                <div class="form-text">Primary API endpoint for device communication</div>
+            </div>
+            
+            <div class="col-md-6">
+                <label asp-for="Username" class="form-label">
+                    <i class="bi bi-person-circle"></i>Username
+                </label>
+                <input asp-for="Username" type="text" class="form-control" placeholder="Enter your username" required>
+                <div class="form-text">Your API authentication username</div>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="Password" class="form-label">
+                    <i class="bi bi-shield-lock"></i>Password
+                </label>
+                <input asp-for="Password" type="password" class="form-control" placeholder="Enter secure password" required>
+                <div class="form-text">Encrypted API authentication password</div>
+            </div>
+            
+            <div class="col-md-6">
+                <label asp-for="TimeoutSeconds" class="form-label">
+                    <i class="bi bi-stopwatch"></i>Timeout Duration
+                </label>
+                <input asp-for="TimeoutSeconds" type="number" class="form-control" min="1" max="300" required>
+                <div class="form-text">Request timeout in seconds (1-300)</div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="mt-4 pt-2">
+                    <div class="form-check form-switch">
+                        <input asp-for="EnableLogging" class="form-check-input" type="checkbox">
+                        <label class="form-check-label fw-semibold" asp-for="EnableLogging">
+                            <i class="bi bi-journal-code me-2"></i>Enable Detailed Logging
+                        </label>
+                    </div>
+                    <div class="form-text mt-2">Capture API requests and responses for debugging</div>
+                </div>
+            </div>
+            
+            <div class="col-12 pt-3">
+                <div class="d-flex gap-3 flex-wrap">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-check-circle me-2"></i>Save Configuration
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="testConnection()">
+                        <i class="bi bi-wifi me-2"></i>Test Connection
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

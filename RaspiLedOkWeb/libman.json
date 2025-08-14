@@ -1,0 +1,33 @@
+{
+  "version": "1.0",
+  "defaultProvider": "unpkg",
+  "libraries": [
+    {
+      "library": "@fontsource/inter@5.0.16",
+      "destination": "wwwroot/lib/fonts/inter/",
+      "files": [
+        "300.css",
+        "400.css",
+        "500.css",
+        "600.css",
+        "700.css",
+        "800.css",
+        "files/inter-latin-300-normal.woff2",
+        "files/inter-latin-400-normal.woff2",
+        "files/inter-latin-500-normal.woff2",
+        "files/inter-latin-600-normal.woff2",
+        "files/inter-latin-700-normal.woff2",
+        "files/inter-latin-800-normal.woff2"
+      ]
+    },
+    {
+      "library": "bootstrap-icons@1.11.0",
+      "destination": "wwwroot/lib/bootstrap-icons/",
+      "files": [
+        "font/bootstrap-icons.css",
+        "font/fonts/bootstrap-icons.woff",
+        "font/fonts/bootstrap-icons.woff2"
+      ]
+    }
+  ]
+}

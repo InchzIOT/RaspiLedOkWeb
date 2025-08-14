@@ -8,9 +8,11 @@ namespace RaspiLedOkWeb.Services
 {
     public interface ISyncService
     {
+        Task<JsonAuthResponse> AutoLogin();
         Task<JsonAuthResponse> Login(JsonAuth jsonAuth);
         Task<JsonAuthResponse> Login(string username, string password);
         Task<JsonDeviceListResponse> GetDeviceListByAsset(int assetId);
-        Task<AirSensorModel> GetAirSensorLatestDataByDeviceIdAsync(int deviceId)
+        Task<AirSensorModel> GetAirSensorLatestDataByDeviceIdAsync(int deviceId);
+        Task<PoleSensorModel> GetAirAndWaterSensorLatestDataByDeviceIdAsync(int airId, int waterId);
     }
 }

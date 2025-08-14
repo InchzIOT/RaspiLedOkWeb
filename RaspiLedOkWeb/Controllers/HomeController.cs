@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Threading.Tasks;
 using Doggo.Data.Models;
 using Microsoft.AspNetCore.Mvc;
 using RaspiLedOkWeb.Helpers;
@@ -9,10 +10,28 @@ namespace RaspiLedOkWeb.Controllers
 {
     public class HomeController : Controller
     {
+        private enum DeviceType
+        {
+            Air,
+            Ph
+        }
+
+        private enum AirSensorsKey
+        {
+            So2,
+            No2,
+            Temperature,
+            Humidity,
+            Pm25,
+            Pm10
+        }
+
         private readonly ILogger<HomeController> _logger;
         private readonly ISyncService _syncService;
         private readonly IApiConfigurationService _apiConfigurationService;
-
+        private static AirSensorModel cacheAirSensorModel;
+        private static PoleSensorModel cacheAirAndWaterSensorModel;
+        //private static Dictionary<DeviceType<Dictionary<AirSensorsKey, string>>() keyValuesPairs;
         public HomeController(ILogger<HomeController> logger, ISyncService syncService, IApiConfigurationService apiConfigurationService)
         {
             _logger = logger;
@@ -25,95 +44,20 @@ namespace RaspiLedOkWeb.Controllers
             try
             {
                 var configRes = _apiConfigurationService.GetConfiguration();
-                ConfigurationAssets configAssets = new ConfigurationAssets();
-
-                // Check if we have valid configuration
-                if (string.IsNullOrEmpty(configRes.Username) || string.IsNullOrEmpty(configRes.Password))
+                if (!_apiConfigurationService.ValidateConfiguration(configRes))
                 {
-                    ViewBag.Message = "Please configure API credentials first.";
-                    ViewBag.MessageType = "warning";
-                    return View();
+                    return View("ErrorPage");
                 }
 
-
-                _logger.LogInformation("Attempting to login and fetch assets");
-                
-                // Login using configured credentials
-                var loginRes = await _syncService.Login(configRes.Username, configRes.GetDecryptedPassword());
-                
-                if (loginRes.Success && loginRes.AuthHeader?.Assets != null)
-                {
-                    _logger.LogInformation("Login successful, found {Count} assets", loginRes.AuthHeader.Assets.Count);
-
-                    var totalDevices = 0;
-
-                    // Fetch devices for each asset
-                    foreach (var asset in loginRes.AuthHeader.Assets)
-                    {
-                        Asset configAsset = new Asset()
-                        {
-                            Name = asset.Name,
-                            Id = asset.AssetId.ToString(),
-                            IsEnabled = true,
-                            Interval = 1000
-                        };
-
-                        try
-                        {
-                            // Use AssetId directly since it's already an int
-                            var deviceResponse = await _syncService.GetDeviceListByAsset(asset.AssetId);
-                            if (deviceResponse.Success && deviceResponse.Devices != null)
-                            {
-                                foreach (var device in deviceResponse.Devices)
-                                {
-                                    Device configDevice = new Device()
-                                    {
-                                        Name = device.DeviceName, // Changed from DeviceName to Name
-                                        Id = device.DeviceId.ToString(),
-                                        IsEnabled = true,
-                                        Interval = 1000
-                                    };
-                                    configAsset.Devices.Add(configDevice);
-                                }
-
-                                totalDevices += deviceResponse.Devices.Count;
-                                _logger.LogInformation("Fetched {Count} devices for asset {AssetName}", deviceResponse.Devices.Count, asset.Name);
-                            }
-                            else
-                            {
-                                _logger.LogWarning("Failed to fetch devices for asset {AssetName}: {Message}", asset.Name, deviceResponse.Message);
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(ex, "Error fetching devices for asset {AssetName}", asset.Name);
-                            configAsset.Devices = new List<Device>();
-                        }
-                        
-                        // Add the configured asset to our collection
-                        configAssets.Assets.Add(configAsset);
-                    }
-                    
-                    // Save assets with their fetched devices to appsettings.json
-                    await _apiConfigurationService.UpdateAssetsAsync(configAssets);
-                    
-                    ViewBag.Message = $"Successfully synced {configAssets.Assets.Count} assets with {totalDevices} total devices from API.";
-                    ViewBag.MessageType = "success";
-                    ViewBag.Assets = configAssets.Assets;
-                }
-                else
-                {
-                    var errorMsg = loginRes.Success ? "No assets found in response" : loginRes.Message;
-                    _logger.LogWarning("Login or asset fetch failed: {Error}", errorMsg);
-                    ViewBag.Message = $"Failed to fetch assets: {errorMsg}";
-                    ViewBag.MessageType = "danger";
+                var loginRes = await _syncService.AutoLogin();
+                if (!loginRes.Success) {
+                    return View("ErrorPage");
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in Home/Index");
-                ViewBag.Message = $"Error occurred: {ex.Message}";
-                ViewBag.MessageType = "danger";
+                return View("ErrorPage");
             }
 
             return View();
@@ -123,6 +67,71 @@ namespace RaspiLedOkWeb.Controllers
         {
             AirSensorModel res = await _syncService.GetAirSensorLatestDataByDeviceIdAsync(1);
             return Json(new { res });
+        }
+
+        public List<Asset> GetAssets()
+        {
+            // Get the configured assets from appsettings.json
+            var assets = _apiConfigurationService.GetAssets();
+            var enabledAssets = assets.Where(a => a.IsEnabled).ToList();
+            return enabledAssets;
+        }
+
+       public List<Device> GetDevicesByAsset(string assetId)
+       {
+            var assets = _apiConfigurationService.GetAssets();
+            List<Device> devices = assets.Where(x => x.IsEnabled && x.Id == assetId).Select(x=>x.Devices).FirstOrDefault().Where(x => x.IsEnabled).ToList();
+            return devices;
+       }
+
+        public async Task<JsonResult> GetAirSensorValue()
+        {
+            try
+            {
+                bool success = true;
+                var asset = GetAssets().FirstOrDefault();
+                var device = GetDevicesByAsset(asset.Id.ToString()).FirstOrDefault(x => x.Name.ToLower().Contains(DeviceType.Air.ToString().ToLower()));
+                if (device != null)
+                {
+                    var res = await _syncService.GetAirSensorLatestDataByDeviceIdAsync(int.Parse(device.Id));
+                    cacheAirSensorModel = res;
+                    return Json(new { success, data = res });
+                }
+                else
+                {
+                    return Json(new { success = true, message = "No air device had found", data = cacheAirSensorModel });
+                }
+            }  catch(Exception ex)
+            {
+                return Json(new { success = true, message = "No air device had found", data = cacheAirSensorModel });
+            }
+
+        }
+
+        public async Task<JsonResult> GetAirAndWaterSensorValue()
+        {
+            try
+            {
+                bool success = true;
+                var asset = GetAssets().FirstOrDefault();
+                var airDevice = GetDevicesByAsset(asset.Id.ToString()).FirstOrDefault(x => x.Name.ToLower().Contains(DeviceType.Air.ToString().ToLower()));
+                var waterDevice = GetDevicesByAsset(asset.Id.ToString()).FirstOrDefault(x => x.Name.ToLower().Contains(DeviceType.Ph.ToString().ToLower()));
+                if (airDevice != null && waterDevice != null)
+                {
+                    var res = await _syncService.GetAirAndWaterSensorLatestDataByDeviceIdAsync(int.Parse(airDevice.Id), int.Parse(waterDevice.Id));
+                    cacheAirAndWaterSensorModel = res;
+                    return Json(new { success, data = res });
+                }
+                else
+                {
+                    return Json(new { success = true, message = "No air device had found", data = cacheAirAndWaterSensorModel });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = true, message = "No air and water device had found", data = cacheAirAndWaterSensorModel });
+            }
+
         }
     }
 }

@@ -267,6 +267,11 @@
                 background-color: #38bdf8;
             }
 
+        /* Hidden class for containers */
+        .hidden {
+            display: none !important;
+        }
+
         /* Reset default margins and padding */
         * {
             margin: 0;
@@ -309,7 +314,7 @@
                 </div>
 
                 <!-- Air Quality Value Container -->
-                <div class="value-container" id="apiContainer">
+                <div class="value-container hidden" id="apiContainer">
                     <div class="value-title">Air Quality</div>
                     <div class="canvas-container">
                         <canvas id="apiCanvas" class="visualization-canvas" width="208" height="140"></canvas>
@@ -319,7 +324,7 @@
                 </div>
 
                 <!-- Humidity Value Container -->
-                <div class="value-container hidden" id="humidityContainer">
+                <div class="value-container" id="humidityContainer">
                     <div class="value-title">Humidity</div>
                     <div class="canvas-container">
                         <canvas id="humidityCanvas" class="visualization-canvas" width="208" height="140"></canvas>
@@ -338,14 +343,24 @@
                     <div class="value-status status-loading" id="phStatus">Loading</div>
                 </div>
 
-                <!-- Solar Value Container -->
-                <div class="value-container hidden" id="solarContainer">
-                    <div class="value-title">Solar Voltage</div>
+                <!-- PM2.5 Value Container -->
+                <div class="value-container hidden" id="pm25Container">
+                    <div class="value-title">PM2.5</div>
                     <div class="canvas-container">
-                        <canvas id="solarCanvas" class="visualization-canvas" width="208" height="140"></canvas>
-                        <div class="overlay-value" id="solarDisplayValue">--</div>
+                        <canvas id="pm25Canvas" class="visualization-canvas" width="208" height="140"></canvas>
+                        <div class="overlay-value" id="pm25DisplayValue">--</div>
                     </div>
-                    <div class="value-status status-loading" id="solarStatus">Loading</div>
+                    <div class="value-status status-loading" id="pm25Status">Loading</div>
+                </div>
+
+                <!-- PM10 Value Container -->
+                <div class="value-container hidden" id="pm10Container">
+                    <div class="value-title">PM10</div>
+                    <div class="canvas-container">
+                        <canvas id="pm10Canvas" class="visualization-canvas" width="208" height="140"></canvas>
+                        <div class="overlay-value" id="pm10DisplayValue">--</div>
+                    </div>
+                    <div class="value-status status-loading" id="pm10Status">Loading</div>
                 </div>
             </div>
         </div>
@@ -370,7 +385,8 @@
             api: { value: null, loading: true, currentLevel: 0, targetLevel: 0 },
             humidity: { value: null, loading: true, currentLevel: 0, targetLevel: 0 },
             ph: { value: null, loading: true, currentLevel: 0, targetLevel: 0 },
-            solar: { value: null, loading: true, currentLevel: 0, targetLevel: 0 }
+            pm25: { value: null, loading: true, currentLevel: 0, targetLevel: 0 },
+            pm10: { value: null, loading: true, currentLevel: 0, targetLevel: 0 },
         };
 
         // Animation variables
@@ -387,70 +403,12 @@
         const FLIP_DELAY = 5000; // 5 seconds per page
         const TRANSITION_DURATION = 400; // Match CSS transition duration
 
-        // Configuration monitoring variables
-        let configCheckInterval;
-        let lastConfigTimestamp = 0;
-
-        // Device IDs
-        const monsantoAirKeyId = "5b2d5740-e441-11ef-96e7-17bd8bdd3393";
-        const monsantoPhKeyId = "5b506fa0-e441-11ef-96e7-17bd8bdd3393";
-        const monsantoSolarKeyId = "5b5837d0-e441-11ef-96e7-17bd8bdd3393";
-
         // Define sensor groups (2 sensors per page)
         const sensorPages = [
-            ['temperature', 'api'],       // Page 0
-            ['humidity', 'ph'],           // Page 1
-            ['solar', 'temperature']      // Page 2 (cycling back to show solar with temperature)
+            ['temperature', 'humidity'],       // Page 0
+            ['api', 'ph'],           // Page 1
+            ['pm25', 'pm10']      // Page 2
         ];
-
-        // Check if all required elements exist
-        function checkRequiredElements() {
-            console.log('=== CHECKING HTML ELEMENTS ===');
-
-            const requiredElements = [
-                'dashboard',
-                'currentTime',
-                'currentDate',
-                'temperatureContainer',
-                'temperatureCanvas',
-                'temperatureDisplayValue',
-                'temperatureStatus',
-                'apiContainer',
-                'apiCanvas',
-                'apiDisplayValue',
-                'apiStatus',
-                'humidityContainer',
-                'humidityCanvas',
-                'humidityDisplayValue',
-                'humidityStatus',
-                'phContainer',
-                'phCanvas',
-                'phDisplayValue',
-                'phStatus',
-                'solarContainer',
-                'solarCanvas',
-                'solarDisplayValue',
-                'solarStatus',
-                'dot0',
-                'dot1',
-                'dot2'
-            ];
-
-            let allElementsFound = true;
-
-            requiredElements.forEach(elementId => {
-                const element = document.getElementById(elementId);
-                if (element) {
-                    console.log(`✓ Found element: ${elementId}`);
-                } else {
-                    console.error(`✗ Missing element: ${elementId}`);
-                    allElementsFound = false;
-                }
-            });
-
-            console.log('All elements found:', allElementsFound);
-            return allElementsFound;
-        }
 
         // Helper function to draw circle shape with bounds checking
         function drawCircleShape(ctx, centerX, centerY, radius) {
@@ -509,9 +467,25 @@
                 const alpha2 = 0.8 + Math.sin(time * 0.02 + Math.PI/2) * 0.1;
                 const alpha3 = 1.0;
 
-                gradient.addColorStop(0, primaryColor + Math.floor(alpha1 * 255).toString(16).padStart(2, '0'));
-                gradient.addColorStop(0.5, primaryColor + Math.floor(alpha2 * 255).toString(16).padStart(2, '0'));
-                gradient.addColorStop(1, primaryColor + Math.floor(alpha3 * 255).toString(16).padStart(2, '0'));
+                // Clean the color string to ensure it's a valid hex color
+                let cleanColor = primaryColor;
+                if (cleanColor.includes('rgb') || cleanColor.includes('!important')) {
+                    cleanColor = '#6b7280'; // Fallback to gray if invalid color
+                }
+                if (!cleanColor.startsWith('#')) {
+                    cleanColor = '#6b7280'; // Ensure hex format
+                }
+
+                try {
+                    gradient.addColorStop(0, cleanColor + Math.floor(alpha1 * 255).toString(16).padStart(2, '0'));
+                    gradient.addColorStop(0.5, cleanColor + Math.floor(alpha2 * 255).toString(16).padStart(2, '0'));
+                    gradient.addColorStop(1, cleanColor + Math.floor(alpha3 * 255).toString(16).padStart(2, '0'));
+                } catch (gradientError) {
+                    console.error('Gradient color error, using fallback:', gradientError);
+                    gradient.addColorStop(0, '#6b7280aa');
+                    gradient.addColorStop(0.5, '#6b7280cc');
+                    gradient.addColorStop(1, '#6b7280ff');
+                }
 
                 ctx.fillStyle = gradient;
                 ctx.fill();
@@ -523,7 +497,11 @@
                 if (highlightWidth > 0) {
                     ctx.ellipse(centerX, highlightY, highlightWidth, 3, 0, 0, Math.PI * 2);
                     const highlightAlpha = 0.3 + Math.sin(time * 0.04) * 0.1;
-                    ctx.fillStyle = primaryColor + Math.floor(highlightAlpha * 255).toString(16).padStart(2, '0');
+                    try {
+                        ctx.fillStyle = cleanColor + Math.floor(highlightAlpha * 255).toString(16).padStart(2, '0');
+                    } catch (highlightError) {
+                        ctx.fillStyle = '#6b72804d'; // Fallback highlight color
+                    }
                     ctx.fill();
                 }
             } catch (error) {
@@ -557,8 +535,8 @@
             if (sensorData.temperature.loading || val === null) return 'Loading';
             const numVal = parseFloat(val);
             if (isNaN(numVal)) return 'Error';
-            if (numVal < 18 || numVal > 30) return 'Out of Range';
-            if (numVal >= 20 && numVal <= 26) return 'Optimal';
+            if (numVal < 20 || numVal > 40) return 'Out of Range';
+            if (numVal >= 25 && numVal <= 35) return 'Optimal';
             return 'Normal';
         }
 
@@ -566,9 +544,9 @@
             if (sensorData.temperature.loading || val === null) return '#6b7280';
             const numVal = parseFloat(val);
             if (isNaN(numVal)) return '#dc2626';
-            if (numVal < 18) return '#0ea5e9';
-            if (numVal > 30) return '#dc2626';
-            if (numVal >= 20 && numVal <= 26) return '#059669';
+            if (numVal < 20) return '#0ea5e9';
+            if (numVal > 40) return '#dc2626';
+            if (numVal >= 25 && numVal <= 35) return '#059669';
             return '#f59e0b';
         }
 
@@ -580,18 +558,18 @@
             if (numVal <= 100) return 'Moderate';
             if (numVal <= 200) return 'Unhealthy';
             if (numVal <= 300) return 'Very Unhealthy';
-            return 'Danger';
+            return 'Hazardous';
         }
 
         function getApiColor(val) {
             if (sensorData.api.loading || val === null) return '#6b7280';
             const numVal = parseFloat(val);
             if (isNaN(numVal)) return '#dc2626';
-            if (numVal <= 50) return '#0ea5e9';
-            if (numVal <= 100) return '#059669';
-            if (numVal <= 200) return '#f59e0b';
-            if (numVal <= 300) return '#ea580c';
-            return '#dc2626';
+            if (numVal <= 50) return '#00e400';    // Good - Green
+            if (numVal <= 100) return '#ffff00';   // Moderate - Yellow  
+            if (numVal <= 200) return '#ff7e00';   // Unhealthy - Orange
+            if (numVal <= 300) return '#ff0000';   // Very Unhealthy - Red
+            return '#8f3f97';                      // Hazardous - Purple
         }
 
         function getHumidityStatus(val) {
@@ -599,7 +577,7 @@
             const numVal = parseFloat(val);
             if (isNaN(numVal)) return 'Error';
             if (numVal < 30) return 'Low';
-            if (numVal > 70) return 'High';
+            if (numVal > 80) return 'High';
             if (numVal >= 40 && numVal <= 60) return 'Optimal';
             return 'Normal';
         }
@@ -609,7 +587,7 @@
             const numVal = parseFloat(val);
             if (isNaN(numVal)) return '#dc2626';
             if (numVal < 30) return '#ea580c';
-            if (numVal > 70) return '#0ea5e9';
+            if (numVal > 80) return '#0ea5e9';
             if (numVal >= 40 && numVal <= 60) return '#059669';
             return '#f59e0b';
         }
@@ -618,7 +596,7 @@
             if (sensorData.ph.loading || val === null) return 'Loading';
             const numVal = parseFloat(val);
             if (isNaN(numVal)) return 'Error';
-            if (numVal < 6 || numVal > 9) return 'Out of Range';
+            if (numVal < 6.5 || numVal > 7.5) return 'Out of Range';
             return 'Normal';
         }
 
@@ -626,27 +604,58 @@
             if (sensorData.ph.loading || val === null) return '#6b7280';
             const numVal = parseFloat(val);
             if (isNaN(numVal)) return '#dc2626';
-            if (numVal < 6 || numVal > 9) return '#dc2626';
+            if (numVal < 6.5 || numVal > 7.5) return '#dc2626';
             return '#059669';
         }
 
-        function getSolarStatus(val) {
-            if (sensorData.solar.loading || val === null) return 'Loading';
+        function getPM25Status(val) {
+            if (sensorData.pm25.loading || val === null) return 'Loading';
             const numVal = parseFloat(val);
             if (isNaN(numVal)) return 'Error';
-            if (numVal < 11) return 'Low';
-            if (numVal > 14) return 'High';
-            return 'Normal';
+            if (numVal <= 12) return 'Good';
+            if (numVal <= 35.4) return 'Moderate';
+            if (numVal <= 55.4) return 'Unhealthy for Sensitive Groups';
+            if (numVal <= 150.4) return 'Unhealthy';
+            if (numVal <= 250.4) return 'Very Unhealthy';
+            return 'Hazardous';
         }
 
-        function getSolarColor(val) {
-            if (sensorData.solar.loading || val === null) return '#6b7280';
+        function getPM25Color(val) {
+            if (sensorData.pm25.loading || val === null) return '#6b7280';
             const numVal = parseFloat(val);
             if (isNaN(numVal)) return '#dc2626';
-            if (numVal < 11) return '#ea580c';
-            if (numVal > 14) return '#dc2626';
-            return '#f59e0b';
+            if (numVal <= 12) return '#00e400';      // Good - Green
+            if (numVal <= 35.4) return '#ffff00';    // Moderate - Yellow
+            if (numVal <= 55.4) return '#ff7e00';    // Unhealthy for Sensitive - Orange  
+            if (numVal <= 150.4) return '#ff0000';   // Unhealthy - Red
+            if (numVal <= 250.4) return '#8f3f97';   // Very Unhealthy - Purple
+            return '#7e0023';                        // Hazardous - Maroon
         }
+
+        function getPM10Status(val) {
+            if (sensorData.pm10.loading || val === null) return 'Loading';
+            const numVal = parseFloat(val);
+            if (isNaN(numVal)) return 'Error';
+            if (numVal <= 54) return 'Good';
+            if (numVal <= 154) return 'Moderate';
+            if (numVal <= 254) return 'Unhealthy for Sensitive Groups';
+            if (numVal <= 354) return 'Unhealthy';
+            if (numVal <= 424) return 'Very Unhealthy';
+            return 'Hazardous';
+        }
+
+        function getPM10Color(val) {
+            if (sensorData.pm10.loading || val === null) return '#6b7280';
+            const numVal = parseFloat(val);
+            if (isNaN(numVal)) return '#dc2626';
+            if (numVal <= 54) return '#00e400';      // Good - Green
+            if (numVal <= 154) return '#ffff00';     // Moderate - Yellow
+            if (numVal <= 254) return '#ff7e00';     // Unhealthy for Sensitive - Orange
+            if (numVal <= 354) return '#ff0000';     // Unhealthy - Red
+            if (numVal <= 424) return '#8f3f97';     // Very Unhealthy - Purple
+            return '#7e0023';                        // Hazardous - Maroon
+        }
+        
 
         function getStatusClass(status) {
             const statusKey = status.toLowerCase().replace(' ', '-');
@@ -660,7 +669,8 @@
                 case 'api': return getApiStatus(value);
                 case 'humidity': return getHumidityStatus(value);
                 case 'ph': return getPhStatus(value);
-                case 'solar': return getSolarStatus(value);
+                case 'pm25': return getPM25Status(value);
+                case 'pm10': return getPM10Status(value);
                 default: return 'Error';
             }
         }
@@ -671,7 +681,8 @@
                 case 'api': return getApiColor(value);
                 case 'humidity': return getHumidityColor(value);
                 case 'ph': return getPhColor(value);
-                case 'solar': return getSolarColor(value);
+                case 'pm25': return getPM25Color(value);
+                case 'pm10': return getPM10Color(value);
                 default: return '#dc2626';
             }
         }
@@ -680,19 +691,28 @@
             switch (sensorType) {
                 case 'temperature': return '°C';
                 case 'humidity': return '%';
-                case 'solar': return 'V';
+                case 'pm25': return 'μg/m³';
+                case 'pm10': return 'μg/m³';
                 default: return '';
             }
         }
 
         // Generic visualization drawing function
         function drawVisualization(canvasId, sensorType, timeOffset = 0) {
+            // Only log on first few calls to avoid spam
+            if (animationTime < 5) {
+                console.log(`=== drawVisualization(${canvasId}, ${sensorType}) ===`);
+            }
+            
             const canvas = document.getElementById(canvasId);
             if (!canvas) {
                 console.error(`Canvas ${canvasId} not found!`);
                 return;
             }
 
+            if (animationTime < 5) {
+                console.log(`Canvas ${canvasId} found, setting up context`);
+            }
             const ctx = setupHighDPICanvas(canvas);
 
             // Fixed canvas dimensions
@@ -738,8 +758,13 @@
                     case 'ph':
                         targetLevel = Math.max(0.05, Math.min(0.95, val / 14));
                         break;
-                    case 'solar':
-                        targetLevel = Math.max(0.05, Math.min(0.95, val / 20));
+                    case 'pm25':
+                        // PM2.5: scale based on AQI levels (0-500)
+                        targetLevel = val <= 12 ? 0.9 : val <= 35.4 ? 0.7 : val <= 55.4 ? 0.5 : val <= 150.4 ? 0.35 : val <= 250.4 ? 0.2 : 0.1;
+                        break;
+                    case 'pm10':
+                        // PM10: scale based on AQI levels (0-600)
+                        targetLevel = val <= 54 ? 0.9 : val <= 154 ? 0.7 : val <= 254 ? 0.5 : val <= 354 ? 0.35 : val <= 424 ? 0.2 : 0.1;
                         break;
                     default:
                         targetLevel = 0.5;
@@ -790,8 +815,11 @@
         }
 
         // Page flipping functions
-        function showPage(pageIndex) {
-            if (isTransitioning || pageIndex === currentPage) {
+        function showPage(pageIndex, isInitial = false) {
+            console.log(`=== showPage(${pageIndex}, isInitial: ${isInitial}) called ===`);
+            console.log(`Current page: ${currentPage}, isTransitioning: ${isTransitioning}`);
+            
+            if (!isInitial && (isTransitioning || pageIndex === currentPage)) {
                 console.log('Transition in progress or same page, skipping...');
                 return;
             }
@@ -801,11 +829,49 @@
 
             // Get all containers
             const allContainers = document.querySelectorAll('.value-container');
+            console.log(`Found ${allContainers.length} containers:`, Array.from(allContainers).map(c => c.id));
 
-            // Phase 1: Hide current containers
+            if (isInitial) {
+                console.log('Initial page load - showing containers immediately');
+                // For initial load, reset ALL containers first
+                allContainers.forEach(container => {
+                    container.classList.remove('visible', 'transitioning-out');
+                    container.classList.add('hidden');
+                    console.log(`Reset container: ${container.id} - now hidden`);
+                });
+
+                // Show containers for initial page
+                const initialPageSensors = sensorPages[pageIndex];
+                console.log(`Initial page sensors:`, initialPageSensors);
+                
+                initialPageSensors.forEach((sensorType, index) => {
+                    const containerId = sensorType + 'Container';
+                    const container = document.getElementById(containerId);
+                    if (container) {
+                        console.log(`Making container visible: ${containerId}`);
+                        container.classList.remove('hidden');
+                        container.classList.add('visible');
+                        
+                        // Verify it's visible
+                        const isVisible = container.classList.contains('visible');
+                        const isHidden = container.classList.contains('hidden');
+                        console.log(`Container ${containerId} - visible: ${isVisible}, hidden: ${isHidden}, classes: ${container.className}`);
+                    } else {
+                        console.error(`Container not found: ${containerId}`);
+                    }
+                });
+
+                currentPage = pageIndex;
+                isTransitioning = false;
+                console.log(`Initial page ${pageIndex} setup complete`);
+                return;
+            }
+
+            // Phase 1: Hide current containers (for page transitions)
             allContainers.forEach(container => {
                 container.classList.remove('visible');
                 container.classList.add('transitioning-out');
+                console.log(`Hiding container: ${container.id}`);
             });
 
             // Update page indicator immediately
@@ -814,6 +880,7 @@
                 if (dot) {
                     if (i === pageIndex) {
                         dot.classList.add('active');
+                        console.log(`Activated dot ${i}`);
                     } else {
                         dot.classList.remove('active');
                     }
@@ -822,19 +889,25 @@
 
             // Phase 2: After transition out, reset and show new containers
             setTimeout(() => {
+                console.log('Phase 2: Showing new containers');
                 // Reset all containers to hidden state
                 allContainers.forEach(container => {
                     container.classList.remove('transitioning-out', 'visible');
+                    container.classList.add('hidden');
                 });
 
                 // Show containers for new page
                 const currentPageSensors = sensorPages[pageIndex];
+                console.log(`New page sensors:`, currentPageSensors);
+                
                 currentPageSensors.forEach((sensorType, index) => {
                     const containerId = sensorType + 'Container';
                     const container = document.getElementById(containerId);
                     if (container) {
                         // Stagger the appearance for smooth effect
                         setTimeout(() => {
+                            console.log(`Making container visible: ${containerId}`);
+                            container.classList.remove('hidden');
                             container.classList.add('visible');
                         }, index * 100);
                     }
@@ -914,20 +987,39 @@
 
             // Only draw visualizations for currently visible sensors
             const currentPageSensors = sensorPages[currentPage];
+            
+            // Only log every 60 frames to avoid spam
+            if (animationTime % 60 === 0) {
+                console.log(`Animation frame ${animationTime} - currentPage: ${currentPage}, sensors:`, currentPageSensors);
+            }
+            
             if (currentPageSensors && Array.isArray(currentPageSensors)) {
                 currentPageSensors.forEach((sensorType, index) => {
                     const canvasId = sensorType + 'Canvas';
                     const container = document.getElementById(sensorType + 'Container');
 
                     // Only draw if container is visible
-                    if (container && container.classList.contains('visible')) {
-                        try {
-                            drawVisualization(canvasId, sensorType, index * Math.PI/3);
-                        } catch (error) {
-                            console.error(`Error animating canvas ${canvasId}:`, error);
+                    if (container) {
+                        const hasVisible = container.classList.contains('visible');
+                        
+                        // Only log container status every 60 frames
+                        if (animationTime % 60 === 0) {
+                            console.log(`Container ${sensorType}Container - hasVisible: ${hasVisible}, classes:`, container.className);
                         }
+                        
+                        if (hasVisible) {
+                            try {
+                                drawVisualization(canvasId, sensorType, index * Math.PI/3);
+                            } catch (error) {
+                                console.error(`Error animating canvas ${canvasId}:`, error);
+                            }
+                        }
+                    } else {
+                        console.error(`Container not found: ${sensorType}Container`);
                     }
                 });
+            } else {
+                console.warn('No currentPageSensors found or not array:', currentPageSensors);
             }
 
             if (animationRunning) {
@@ -937,9 +1029,13 @@
 
         function startAnimation() {
             if (!animationRunning) {
-                console.log('Starting animation...');
+                console.log('=== STARTING ANIMATION ===');
+                console.log('Current page:', currentPage);
+                console.log('Sensor pages:', sensorPages);
                 animationRunning = true;
                 animateCanvases();
+            } else {
+                console.log('Animation already running');
             }
         }
 
@@ -995,9 +1091,9 @@
         // Enhanced data update method with debugging
         function updateAllSensorData() {
             console.log('=== FETCHING SENSOR DATA ===');
-            console.log('Request URL:', window.location.origin + '/Home/GetDeviceData');
+            console.log('Request URL:', window.location.origin + '/Home/GetAirAndWaterSensorValue');
 
-            fetch('/Home/GetDeviceData', {
+            fetch('Home/GetAirAndWaterSensorValue', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1006,100 +1102,91 @@
                 credentials: 'same-origin'
             })
             .then(response => {
-                console.log('Response status:', response.status);
-                console.log('Response headers:', response.headers);
-                console.log('Response URL:', response.url);
+                        console.log('Response status:', response.status);
+                        console.log('Response headers:', response.headers);
+                        console.log('Response URL:', response.url);
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}, statusText: ${response.statusText}`);
-                }
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}, statusText: ${response.statusText}`);
+                        }
 
-                // Check if response is actually JSON
-                const contentType = response.headers.get('content-type');
-                if (!contentType || !contentType.includes('application/json')) {
-                    throw new Error(`Expected JSON response but got: ${contentType}`);
-                }
+                        // Check if response is actually JSON
+                        const contentType = response.headers.get('content-type');
+                        if (!contentType || !contentType.includes('application/json')) {
+                            throw new Error(`Expected JSON response but got: ${contentType}`);
+                        }
 
-                return response.json();
-            })
+                        return response.json();
+                    })            
             .then(data => {
-                console.log('Received data:', data);
-                console.log('Data type:', typeof data);
-                console.log('Data keys:', Object.keys(data));
-
-                if (data.success) {
-                    // Log debug info if available
-                    if (data.debug) {
-                        console.log('Debug info:', data.debug);
-                    }
-
-                    // Update temperature
-                    if (data.data.temperature !== null && data.data.temperature !== undefined) {
-                        sensorData.temperature.value = parseFloat(data.data.temperature).toFixed(1);
-                        sensorData.temperature.loading = false;
-                        console.log('Temperature updated:', sensorData.temperature.value);
-                    } else {
-                        console.warn('Temperature data is null/undefined');
-                        sensorData.temperature.value = 'Error';
-                        sensorData.temperature.loading = false;
-                    }
-
-                    // Update air quality
-                    if (data.data.overallApi !== null && data.data.overallApi !== undefined) {
-                        sensorData.api.value = Math.round(data.data.overallApi).toString();
-                        sensorData.api.loading = false;
-                        console.log('API updated:', sensorData.api.value);
-                    } else {
-                        console.warn('OverallAPI data is null/undefined');
-                        sensorData.api.value = 'Error';
-                        sensorData.api.loading = false;
-                    }
-
-                    // Update humidity
-                    if (data.data.humidity !== null && data.data.humidity !== undefined) {
-                        sensorData.humidity.value = Math.round(data.data.humidity).toString();
-                        sensorData.humidity.loading = false;
-                        console.log('Humidity updated:', sensorData.humidity.value);
-                    } else {
-                        console.warn('Humidity data is null/undefined');
-                        sensorData.humidity.value = 'Error';
-                        sensorData.humidity.loading = false;
-                    }
-
-                    // Update pH
-                    if (data.data.ph !== null && data.data.ph !== undefined) {
-                        sensorData.ph.value = parseFloat(data.data.ph).toFixed(1);
-                        sensorData.ph.loading = false;
-                        console.log('pH updated:', sensorData.ph.value);
-                    } else {
-                        console.warn('pH data is null/undefined');
-                        sensorData.ph.value = 'Error';
-                        sensorData.ph.loading = false;
-                    }
-
-                    // Update solar
-                    if (data.data.solar !== null && data.data.solar !== undefined) {
-                        sensorData.solar.value = parseFloat(data.data.solar).toFixed(1);
-                        sensorData.solar.loading = false;
-                        console.log('Solar updated:', sensorData.solar.value);
-                    } else {
-                        console.warn('Solar data is null/undefined');
-                        sensorData.solar.value = 'Error';
-                        sensorData.solar.loading = false;
-                    }
-
-                    updateUI();
+                console.log(data.data)
+                if (data.data.temperature !== null && data.data.temperature !== undefined) {
+                    sensorData.temperature.value = parseFloat(data.data.temperature).toFixed(1);
+                    sensorData.temperature.loading = false;
+                    console.log('Temperature updated:', sensorData.temperature.value);
                 } else {
-                    console.error('Server returned success=false:', data.message);
-                    if (data.error) console.error('Server error details:', data.error);
-                    if (data.stackTrace) console.error('Server stack trace:', data.stackTrace);
-
-                    Object.keys(sensorData).forEach(key => {
-                        sensorData[key].value = 'Error';
-                        sensorData[key].loading = false;
-                    });
-                    updateUI();
+                    console.warn('Temperature data is null/undefined');
+                    sensorData.temperature.value = 'Error';
+                    sensorData.temperature.loading = false;
                 }
+
+                // Update air quality
+                if (data.data.overallAPI !== null && data.data.overallAPI !== undefined) {
+                    sensorData.api.value = Math.round(data.data.overallAPI).toString();
+                    sensorData.api.loading = false;
+                    console.log('API updated:', sensorData.api.value);
+                } else {
+                    console.warn('OverallAPI data is null/undefined');
+                    sensorData.api.value = 'Error';
+                    sensorData.api.loading = false;
+                }
+
+                // Update humidity
+                if (data.data.humidity !== null && data.data.humidity !== undefined) {
+                    sensorData.humidity.value = Math.round(data.data.humidity).toString();
+                    sensorData.humidity.loading = false;
+                    console.log('Humidity updated:', sensorData.humidity.value);
+                } else {
+                    console.warn('Humidity data is null/undefined');
+                    sensorData.humidity.value = 'Error';
+                    sensorData.humidity.loading = false;
+                }
+
+                // Update pH
+                if (data.data.pH !== null && data.data.pH !== undefined) {
+                    sensorData.ph.value = parseFloat(data.data.pH).toFixed(1);
+                    sensorData.ph.loading = false;
+                    console.log('pH updated:', sensorData.ph.value);
+                } else {
+                    console.warn('pH data is null/undefined');
+                    sensorData.ph.value = 'Error';
+                    sensorData.ph.loading = false;
+                }
+
+                // Update PM25
+                if (data.data.pm10 !== null && data.data.pm10 !== undefined) {
+                    sensorData.pm10.value = parseFloat(data.data.pm10).toFixed(1);
+                    sensorData.pm10.loading = false;
+                    console.log('pm10 updated:', sensorData.pm10.value);
+                } else {
+                    console.warn('pm10 data is null/undefined');
+                    sensorData.pm10.value = 'Error';
+                    sensorData.pm10.loading = false;
+                }
+
+                //Update PM10
+                if (data.data.pm25 !== null && data.data.pm25 !== undefined) {
+                    sensorData.pm25.value = parseFloat(data.data.pm25).toFixed(1);
+                    sensorData.pm25.loading = false;
+                    console.log('pm25 updated:', sensorData.pm25.value);
+                } else {
+                    console.warn('pm25 data is null/undefined');
+                    sensorData.pm25.value = 'Error';
+                    sensorData.pm25.loading = false;
+                }
+
+
+                updateUI();
             })
             .catch(error => {
                 console.error('Fetch error details:');
@@ -1116,92 +1203,45 @@
             });
         }
 
-        // Error handlers
-        window.addEventListener('error', function(e) {
-            console.error('=== UNCAUGHT ERROR ===');
-            console.error('Error:', e.error);
-            console.error('Message:', e.message);
-            console.error('Filename:', e.filename);
-            console.error('Line:', e.lineno);
-            console.error('Column:', e.colno);
-        });
-
-        window.addEventListener('unhandledrejection', function(e) {
-            console.error('=== UNHANDLED PROMISE REJECTION ===');
-            console.error('Reason:', e.reason);
-            console.error('Promise:', e.promise);
-        });
-
         // Initialize when DOM is ready
         document.addEventListener('DOMContentLoaded', function() {
             console.log('=== DOM CONTENT LOADED ===');
-
-            // Check if all elements exist
-            const elementsOk = checkRequiredElements();
-            if (!elementsOk) {
-                console.error('Some required elements are missing! Stopping initialization.');
-                return;
-            }
 
             console.log('DateTime starting...');
             // Start datetime updates
             startDateTimeUpdates();
             console.log('DateTime updates started');
 
-            // Show initial page
+            // Show initial page immediately
             console.log('Showing initial page...');
-            setTimeout(() => {
-                showPage(0);
-            }, 200);
+            showPage(0, true); // Pass true for initial load
             console.log('Initial page shown');
 
-            // Initial canvas drawings
-            console.log('Setting up canvas drawings...');
-            setTimeout(() => {
-                console.log('Drawing initial canvases...');
-                const currentPageSensors = sensorPages[currentPage];
-                console.log('Current page sensors:', currentPageSensors);
+            // Start animation immediately after page is shown
+            console.log('Starting animation...');
+            startAnimation();
+            console.log('Animation started');
 
-                currentPageSensors.forEach((sensorType, index) => {
-                    const canvasId = sensorType + 'Canvas';
-                    console.log('Drawing canvas:', canvasId);
-                    drawVisualization(canvasId, sensorType, index * Math.PI/3);
-                });
-                startAnimation();
-                console.log('Animation started');
-            }, 100);
-
-            // Initial data updates
+            // Initial data updates - start immediately
             console.log('Setting up data updates...');
-            setTimeout(() => {
-                console.log('=== FIRST DATA UPDATE CALL ===');
+            console.log('=== FIRST DATA UPDATE CALL ===');
+            updateAllSensorData();
+
+            // Set up data refresh interval
+            console.log('Setting up 30-second interval...');
+            const intervalId = setInterval(() => {
+                console.log('=== INTERVAL DATA UPDATE CALL ===');
                 updateAllSensorData();
+            }, 30000); // 30 seconds refresh
 
-                // Set up data refresh interval
-                console.log('Setting up 30-second interval...');
-                const intervalId = setInterval(() => {
-                    console.log('=== INTERVAL DATA UPDATE CALL ===');
-                    updateAllSensorData();
-                }, 30000); // 30 seconds refresh
+            console.log('Interval ID:', intervalId);
 
-                console.log('Interval ID:', intervalId);
-
-                // Setup configuration change monitoring
-                console.log('Setting up configuration monitoring...');
-                configCheckInterval = setInterval(() => {
-                    checkConfigurationChanges();
-                }, 10000); // 10 seconds
-
-                // Get initial configuration timestamp
-                getConfigurationTimestamp();
-            }, 500);
-
-            // Start page flipping after initial load
+            // Start page flipping after brief delay
             setTimeout(() => {
                 console.log('Starting page flipping...');
                 startPageFlipping();
                 console.log('Page flipping started');
-            }, 3000); // Increased delay to ensure everything is loaded
+            }, 1000); // Reduced delay for faster startup
 
             console.log('=== DOM CONTENT LOADED COMPLETE ===');
         });
@@ -1215,39 +1255,7 @@
             document.dispatchEvent(new Event('DOMContentLoaded'));
         }
 
-        function getConfigurationTimestamp() {
-            fetch('/Configuration/GetConfigurationTimestamp')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        lastConfigTimestamp = data.timestamp;
-                        console.log('Initial config timestamp:', data.lastUpdated);
-                    }
-                })
-                .catch(() => {
-                    console.warn('Failed to get configuration timestamp');
-                });
-        }
-
-        function checkConfigurationChanges() {
-            fetch('/Configuration/GetConfigurationTimestamp')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success && data.timestamp > lastConfigTimestamp) {
-                        console.log('=== CONFIGURATION CHANGED ===');
-                        console.log('New timestamp:', data.lastUpdated);
-                        lastConfigTimestamp = data.timestamp;
-
-                        // Reload sensor data immediately
-                        console.log('Reloading sensor data due to config change...');
-                        updateAllSensorData();
-                    }
-                })
-                .catch(() => {
-                    // Silently fail - don't spam console
-                });
-        }
-
+        
         console.log('=== SCRIPT END ===');
     </script>
 </body>
