@@ -1,4 +1,5 @@
-﻿using JsonDataClass;
+﻿using Doggo.Data.Models;
+using JsonDataClass;
 using RaspiLedOkWeb.Helpers;
 using RaspiLedOkWeb.Models;
 using System.Text.Json;
@@ -10,5 +11,6 @@ namespace RaspiLedOkWeb.Services
         Task<JsonAuthResponse> Login(JsonAuth jsonAuth);
         Task<JsonAuthResponse> Login(string username, string password);
         Task<JsonDeviceListResponse> GetDeviceListByAsset(int assetId);
+        Task<AirSensorModel> GetAirSensorLatestDataByDeviceIdAsync(int deviceId)
     }
 }

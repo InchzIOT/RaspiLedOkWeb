@@ -62,7 +62,7 @@ namespace RaspiLedOkWeb.Controllers
                 // Return configuration without exposing sensitive data
                 var safeConfiguration = new
                 {
-                    Endpoint = configuration.Endpoint,
+                    Endpoint = configuration.ApiUrl,
                     Username = configuration.Username,
                     Password = configuration.Password,
                     TimeoutSeconds = configuration.TimeoutSeconds,
@@ -92,12 +92,12 @@ namespace RaspiLedOkWeb.Controllers
 
                 // Here you would implement actual API connection testing
                 // For now, we'll just validate the URL format
-                if (Uri.TryCreate(configuration.Endpoint, UriKind.Absolute, out var uri))
+                if (Uri.TryCreate(configuration.ApiUrl, UriKind.Absolute, out var uri))
                 {
                     // You can add actual HTTP request testing here
                     return Json(new { 
                         success = true, 
-                        message = $"Configuration appears valid. Endpoint: {configuration.Endpoint}",
+                        message = $"Configuration appears valid. Endpoint: {configuration.ApiUrl}",
                         timestamp = DateTime.UtcNow 
                     });
                 }

@@ -32,8 +32,8 @@
             
             <form asp-action="UpdateConfiguration" method="post" class="row g-3">
                 <div class="col-md-12">
-                    <label asp-for="Endpoint" class="form-label">API Endpoint</label>
-                    <input asp-for="Endpoint" type="url" class="form-control" placeholder="https://api.example.com/v1" required>
+                    <label asp-for="ApiUrl" class="form-label">API Endpoint</label>
+                    <input asp-for="ApiUrl" type="url" class="form-control" placeholder="https://api.example.com/v1" required>
                     <div class="form-text">The base URL for the API endpoint.</div>
                 </div>
                 
@@ -80,7 +80,7 @@
                 <div class="card-body">
                     <dl class="row">
                         <dt class="col-sm-4">Endpoint:</dt>
-                        <dd class="col-sm-8"><small class="text-break">@Model.Endpoint</small></dd>
+                        <dd class="col-sm-8"><small class="text-break">@Model.ApiUrl</small></dd>
                         
                         <dt class="col-sm-4">API Key:</dt>
                         <dd class="col-sm-8"><small>@(string.IsNullOrEmpty(Model.Username) ? "Not set" : "****" + Model.Username.Substring(Math.Max(0, Model.Username.Length - 4)))</small></dd>

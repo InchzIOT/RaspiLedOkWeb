@@ -1,7 +1,10 @@
+using Doggo.Data.Models;
 using JsonDataClass;
+using JsonDataClass.HHT;
 using Microsoft.Extensions.Options;
 using RaspiLedOkWeb.Helpers;
 using RaspiLedOkWeb.Models;
+using RestSharp;
 using System.Text;
 using System.Text.Json;
 
@@ -18,6 +21,8 @@ namespace RaspiLedOkWeb.Services
         private readonly IWebHostEnvironment _environment = environment;
         private readonly HttpClient _httpClient = httpClient;
         private readonly IApiConfigurationService _configService = configService;
+        public static RestClient restClient;
+        public static RestClientOptions restOptions;
         #endregion
 
         #region Authentication
@@ -28,109 +33,129 @@ namespace RaspiLedOkWeb.Services
 
         public async Task<JsonAuthResponse> Login(string username, string password)
         {
+            JsonAuthResponse resp = new JsonAuthResponse();
             try
             {
                 var config = _configService.GetConfiguration();
                 string endpoint = "/doggoconsole/Authentication/Login";
-                var fullUrl = $"{config.Endpoint.TrimEnd('/')}{endpoint}";
+                var fullUrl = $"{config.ApiUrl.TrimEnd('/')}{endpoint}";
+
+                RestRequest request = new RestRequest(endpoint, Method.Post);
 
                 var loginData = new JsonAuth
                 {
                     Username = username,
                     Password = password
                 };
-
-                var jsonContent = JsonSerializer.Serialize(loginData, new JsonSerializerOptions
+                request.AddJsonBody(loginData);
+                RestResponse restResponse = await restClient.ExecuteAsync(request);
+                if(restResponse.StatusCode == System.Net.HttpStatusCode.OK)
                 {
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-                });
-
-                var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
-
-                _logger.LogInformation("Attempting login to {Url}", fullUrl);
-
-                var response = await _httpClient.PostAsync(fullUrl, content);
-                var responseContent = await response.Content.ReadAsStringAsync();
-
-                if (response.IsSuccessStatusCode)
-                {
-                    var authResponse = JsonSerializer.Deserialize<JsonAuthResponse>(responseContent, new JsonSerializerOptions
+                    resp = JsonSerializer.Deserialize<JsonAuthResponse>(restResponse.Content, new JsonSerializerOptions()
                     {
                         PropertyNameCaseInsensitive = true
                     });
-
-                    _logger.LogInformation("Login successful for user {Username}", username);
-                    return authResponse ?? new JsonAuthResponse { Success = false, Message = "Invalid response format" };
                 }
                 else
                 {
-                    _logger.LogWarning("Login failed with status {StatusCode}: {Response}", response.StatusCode, responseContent);
-                    return new JsonAuthResponse
-                    {
-                        Success = false,
-                        Message = $"Login failed: {response.StatusCode}"
-                    };
+                    resp.Success = false;
+                    resp.Message = $"{restResponse.StatusCode} {restResponse.StatusDescription}: {restResponse.ErrorMessage}";
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error during login for user {Username}", username);
-                return new JsonAuthResponse
-                {
-                    Success = false,
-                    Message = $"Login error: {ex.Message}"
-                };
+                resp.Success = false;
+                resp.Message = ex.Message;
             }
+            return resp;
         }
         #endregion
 
         #region Devices
         public async Task<JsonDeviceListResponse> GetDeviceListByAsset(int assetId)
         {
+            JsonDeviceListResponse resp = new JsonDeviceListResponse();
+            resp.Success = false;
             try
             {
                 var config = _configService.GetConfiguration();
-                string endpoint = $"/doggoconsole/SmartPole/GetDeviceListByAsset?assetId={assetId}";
-                var fullUrl = $"{config.Endpoint.TrimEnd('/')}{endpoint}";
+                string endpoint = $"/doggoconsole/SmartPole/GetDeviceListByAsset";
+                var fullUrl = $"{config.ApiUrl.TrimEnd('/')}{endpoint}";
 
-                _logger.LogInformation("Fetching device list for asset {AssetId} from {Url}", assetId, fullUrl);
+                RestRequest request = new RestRequest(endpoint, Method.Get);
+                request.AddParameter("assetId", assetId);
+                RestResponse restResponse = restClient.Execute(request);
 
-                var response = await _httpClient.GetAsync(fullUrl);
-                var responseContent = await response.Content.ReadAsStringAsync();
-
-                if (response.IsSuccessStatusCode)
+                if (restResponse.StatusCode == System.Net.HttpStatusCode.OK)
                 {
-                    var deviceResponse = JsonSerializer.Deserialize<JsonDeviceListResponse>(responseContent, new JsonSerializerOptions
+                    resp = JsonSerializer.Deserialize<JsonDeviceListResponse>(restResponse.Content, new JsonSerializerOptions()
                     {
                         PropertyNameCaseInsensitive = true
                     });
-
-                    return deviceResponse ?? new JsonDeviceListResponse { Success = false, Message = "Invalid response format" };
+                }
+                else if (restResponse.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    resp.Message = "Unauthorized";
+                }
+                else if (restResponse.StatusCode == 0)
+                {
+                    resp.Message = "Timeout";
                 }
                 else
                 {
-                    _logger.LogWarning("Device list fetch failed with status {StatusCode}: {Response}", response.StatusCode, responseContent);
-                    return new JsonDeviceListResponse
-                    {
-                        Success = false,
-                        Message = $"Fetch failed: {response.StatusCode}"
-                    };
+                    resp.Message = restResponse.ErrorMessage;
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error fetching device list for asset {AssetId}", assetId);
-                return new JsonDeviceListResponse
-                {
-                    Success = false,
-                    Message = $"Fetch error: {ex.Message}"
-                };
+                resp.Message = ex.Message;
             }
+            return resp;
         }
         #endregion
 
         #region Telemetry
+        public async Task<AirSensorModel> GetAirSensorLatestDataByDeviceIdAsync(int deviceId)
+        {
+            AirSensorModel resp = new AirSensorModel();
+            resp.Success = false;
+            try
+            {
+                var config = _configService.GetConfiguration();
+                string endpoint = $"/doggoconsole/TBData/GetAirSensorDataByDeviceId";
+                var fullUrl = $"{config.ApiUrl.TrimEnd('/')}{endpoint}";
 
+                RestRequest request = new RestRequest(endpoint, Method.Get);
+                request.AddParameter("deviceId", deviceId);
+                RestResponse restResponse = restClient.Execute(request);
+
+                if (restResponse.StatusCode == System.Net.HttpStatusCode.OK)
+                {
+                    resp = JsonSerializer.Deserialize<AirSensorModel>(restResponse.Content, new JsonSerializerOptions()
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+                }
+                else if (restResponse.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    resp.Message = "Unauthorized";
+                }
+                else if (restResponse.StatusCode == 0)
+                {
+                    resp.Message = "Timeout";
+                }
+                else
+                {
+                    resp.Message = restResponse.ErrorMessage;
+                }
+            }
+            catch (Exception ex)
+            {
+                resp.Message = ex.Message;
+            }
+            return resp;
+        }
         #endregion
 
     }

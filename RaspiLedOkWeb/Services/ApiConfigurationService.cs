@@ -31,7 +31,7 @@ namespace RaspiLedOkWeb.Services
             {
                 _cachedConfiguration = _options.CurrentValue;
                 _logger.LogInformation("API configuration loaded: Endpoint={Endpoint}", 
-                    _cachedConfiguration.Endpoint);
+                    _cachedConfiguration.ApiUrl);
             }
             
             return _cachedConfiguration;
@@ -51,7 +51,7 @@ namespace RaspiLedOkWeb.Services
             await UpdateAppSettingsFileAsync(configuration);
             
             _logger.LogInformation("API configuration updated and persisted: Endpoint={Endpoint}", 
-                configuration.Endpoint);
+                configuration.ApiUrl);
         }
 
         public bool ValidateConfiguration(ApiConfiguration configuration)
@@ -62,7 +62,7 @@ namespace RaspiLedOkWeb.Services
                 return false;
             }
 
-            if (string.IsNullOrWhiteSpace(configuration.Endpoint))
+            if (string.IsNullOrWhiteSpace(configuration.ApiUrl))
             {
                 _logger.LogWarning("API endpoint is required");
                 return false;
@@ -80,7 +80,7 @@ namespace RaspiLedOkWeb.Services
                 return false;
             }
 
-            if (!Uri.TryCreate(configuration.Endpoint, UriKind.Absolute, out _))
+            if (!Uri.TryCreate(configuration.ApiUrl, UriKind.Absolute, out _))
             {
                 _logger.LogWarning("Invalid API endpoint URL format");
                 return false;
@@ -161,7 +161,7 @@ namespace RaspiLedOkWeb.Services
                 // Update the ApiConfiguration section
                 var apiConfigDict = new Dictionary<string, object>
                 {
-                    ["Endpoint"] = configuration.Endpoint,
+                    ["Endpoint"] = configuration.ApiUrl,
                     ["Username"] = configuration.Username,
                     ["Password"] = configuration.Password,
                     ["TimeoutSeconds"] = configuration.TimeoutSeconds,

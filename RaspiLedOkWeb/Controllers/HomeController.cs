@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Doggo.Data.Models;
 using Microsoft.AspNetCore.Mvc;
 using RaspiLedOkWeb.Helpers;
 using RaspiLedOkWeb.Models;
@@ -33,6 +34,7 @@ namespace RaspiLedOkWeb.Controllers
                     ViewBag.MessageType = "warning";
                     return View();
                 }
+
 
                 _logger.LogInformation("Attempting to login and fetch assets");
                 
@@ -117,83 +119,10 @@ namespace RaspiLedOkWeb.Controllers
             return View();
         }
 
-        [HttpPost]
-        public async Task<IActionResult> RefreshAssets()
+        public async Task<JsonResult> GetAirSensorData()
         {
-            try
-            {
-                var configRes = _apiConfigurationService.GetConfiguration();
-                
-                if (string.IsNullOrEmpty(configRes.Username) || string.IsNullOrEmpty(configRes.Password))
-                {
-                    return Json(new { success = false, message = "API credentials not configured" });
-                }
-
-                var loginRes = await _syncService.Login(configRes.Username, configRes.GetDecryptedPassword());
-                
-                if (loginRes.Success && loginRes.AuthHeader?.Assets != null)
-                {
-                    ConfigurationAssets configAssets = new ConfigurationAssets();
-                    var totalDevices = 0;
-                    
-                    // Fetch devices for each asset
-                    foreach (var asset in loginRes.AuthHeader.Assets)
-                    {
-                        Asset configAsset = new Asset()
-                        {
-                            Name = asset.Name,
-                            Id = asset.AssetId.ToString(),
-                            IsEnabled = true,
-                            Interval = 1000
-                        };
-
-                        try
-                        {
-                            var deviceResponse = await _syncService.GetDeviceListByAsset(asset.AssetId);
-                            if (deviceResponse.Success && deviceResponse.Devices != null)
-                            {
-                                foreach (var device in deviceResponse.Devices)
-                                {
-                                    Device configDevice = new Device()
-                                    {
-                                        Name = device.DeviceName,
-                                        Id = device.DeviceId.ToString(),
-                                        IsEnabled = true,
-                                        Interval = 1000
-                                    };
-                                    configAsset.Devices.Add(configDevice);
-                                }
-                                totalDevices += deviceResponse.Devices.Count;
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(ex, "Error fetching devices for asset {AssetName} during refresh", asset.Name);
-                            configAsset.Devices = new List<Device>();
-                        }
-                        
-                        configAssets.Assets.Add(configAsset);
-                    }
-                    
-                    await _apiConfigurationService.UpdateAssetsAsync(configAssets);
-                    
-                    return Json(new { 
-                        success = true, 
-                        message = $"Successfully refreshed {configAssets.Assets.Count} assets with {totalDevices} devices",
-                        assetsCount = configAssets.Assets.Count,
-                        devicesCount = totalDevices
-                    });
-                }
-                else
-                {
-                    return Json(new { success = false, message = loginRes.Message });
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error refreshing assets");
-                return Json(new { success = false, message = ex.Message });
-            }
+            AirSensorModel res = await _syncService.GetAirSensorLatestDataByDeviceIdAsync(1);
+            return Json(new { res });
         }
     }
 }

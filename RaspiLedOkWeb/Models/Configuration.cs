@@ -11,7 +11,7 @@ namespace RaspiLedOkWeb.Models
     public class ApiConfiguration
     {
         public const string SectionName = "ApiConfiguration";
-        public string Endpoint { get; set; } = string.Empty;
+        public string ApiUrl { get; set; } = string.Empty;
         public string Username { get; set; } = string.Empty;
         private string _encryptedPassword;
         public string Password
