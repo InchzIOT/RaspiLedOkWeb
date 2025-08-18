@@ -10,7 +10,7 @@
     <title>Real Time Dashboard</title>
 </head>
 
-<body style="margin: 0; width: 200px; height: 400px; font-family: Arial, sans-serif; overflow: hidden; font-size: 1rem;">
+<body style="margin: 0; width: 200px; height: 400px; font-family: Arial, sans-serif; overflow: hidden; font-size: 1rem; ">
     <script>
         // Sensor data object to store all sensor values
         let sensorData = {
@@ -393,7 +393,7 @@
             const fetchInterval = setInterval(() => {
                 console.log('Scheduled data fetch triggered');
                 updateAllSensorData();
-            }, 1000 * 1000); // 1000 seconds = 1,000,000 milliseconds
+            }, 60 * 1000); // 1000 seconds = 1,000,000 milliseconds
 
             console.log('Dashboard initialized. DateTime updates every minute, sensor data refreshes every 1000 seconds.');
 
