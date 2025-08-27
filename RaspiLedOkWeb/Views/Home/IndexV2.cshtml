@@ -9,8 +9,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Real Time Dashboard</title>
 </head>
-
-<body style="margin: 0; width: 200px; height: 400px; font-family: Arial, sans-serif; overflow: hidden; font-size: 1rem; ">
+<body style="margin: 0; width: var(--width); height: calc(var(--width)*2); font-family: Arial, sans-serif; overflow: hidden; font-size: calc(var(--width)/10); ">
     <script>
         // Sensor data object to store all sensor values
         let sensorData = {
@@ -30,7 +29,7 @@
             const ctx = canvas.getContext('2d');
             const centerX = canvas.width / 2;
             const centerY = canvas.height / 2;
-            const radius = 48;
+            const radius = canvas.height / 2.2;
 
             // Clear canvas
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -254,10 +253,10 @@
             // Set loading state
             Object.keys(sensorData).forEach(key => {
                 sensorData[key].loading = true;
-            });
+            }); 
             updateUI();
 
-            fetch('Home/GetAirAndWaterSensorValue', {
+            fetch('@Url.Action("GetAirAndWaterSensorValue")', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -408,10 +407,14 @@
             updateAllSensorData();
         }
     </script>
-
-    <div style="width:100%; height: 100%; background-color: #262f40; color: #262f40; display: flex; flex-direction: column;">
-        <div style="text-align: center; flex-shrink: 0;">
-            <div style="display: flex; font-size: 0.7em; padding: 0; margin: 0;">
+    <style>
+        :root {
+            --width: 200px;
+        }
+    </style>
+    <div style="width:100%; height: 100%; background-color: #262f40; color:white; display: flex; flex-direction: column;">
+        <div style="text-align: center; flex-shrink: 0; height: 10%">
+            <div style="display: flex; font-size: 50%; color: #262f40; padding: 0; margin: 0;">
                 <div id="dateDisplay" style="flex: 0 0 60.5%; background-color: white; padding: 2%;">
                     23 Jul 2025 / Friday
                 </div>
@@ -421,123 +424,122 @@
                     09:10AM
                 </div>
             </div>
-            <div style="color: white; padding: 0.3125em 0; font-size: 1em; font-weight: 600;">
+            <div style="color: white; padding: 2% 0; font-size: 75%; font-weight: 600;">
                 Air Pollution Index
             </div>
         </div>
-        <div style="background-color: white; height: 1px; width: 100%; flex-shrink: 0;"></div>
-        <div style="color: white; padding: 0.3125em; flex: 1; display: flex; flex-direction: column;">
-            <div style="position:relative; flex-shrink: 0; margin-bottom: 0.3125em;">
-                <div style="text-align: center; margin-bottom: 0.3125em; font-size: 0.75em;">API Performance</div>
-                <div style="text-align: center; height: 7.5em; display: flex; align-items: center; justify-content: center; flex-direction: column; position: relative;">
-                    <canvas id="apiChart" width="120" height="120"></canvas>
-                    <div style="position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%);
-                        width: 50px; height: 30px;
-                        background: url('images/arrow.svg') no-repeat center;
+        <div style="background-color: white; height: 0.5%; width: 100%; flex-shrink: 0;"></div>
+        <div style="color: white; padding: 3% 3% 0 3%; flex: 1; display: flex; flex-direction: column; height: 66%">
+            <div style="position:relative; flex-shrink: 0; margin-bottom: 3%; height: 50%">
+                <div style="text-align: center; margin-bottom: 3%; font-size: 75%;">API Performance</div>
+                <div style="text-align: center; height: 75%; display: flex; align-items: center; justify-content: center; flex-direction: column; position: relative;">
+                    <canvas id="apiChart" style="width:100%; object-fit:contain"></canvas>
+                    <div style="position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%);
+                        width: 30%; height: 30%;
+                        background: url('../images/arrow.svg') no-repeat center;
                         background-size: contain;">
                     </div>
-                    <div style="position: absolute; top: 50%; left: 40%;  text-align: center;">
-                        <div id="apiValue" style="font-weight: bold; font-size: 1.3em; color: #ffffff;">N/A</div>
-                        <div id="apiStatus" style="font-size: 1em; font-weight:100; color: #ffffff;">No Data</div>
+                    <div style="position: absolute; top: 70%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
+                        <div id="apiValue" style="font-weight: bold; font-size: 100%; color: #ffffff;">N/A</div>
+                        <div id="apiStatus" style="font-size: 80%; font-weight:100; color: #ffffff;">No Data</div>
                     </div>
                 </div>
             </div>
 
-            <div style="display: flex; margin-bottom: 0.5em; flex-shrink: 0;">
-                <div style="flex: 1; text-align: center; padding: 0 0.1875em;">
-                    <div style="text-align: center; margin-bottom: 0.1875em; font-size: 0.45em; color: #FFFF00; font-weight: bold;">
+            <div style="display: flex; margin-bottom: 5%; flex-shrink: 0;">
+                <div style="flex: 1; text-align: center; padding: 0 1.8%;">
+                    <div style="text-align: center; margin-bottom: 0 1.8%; font-size: 40%; color: #FFFF00; font-weight: bold;">
                         PM2.5
                     </div>
-                    <div id="pm25Value" style="font-size: 0.875em; font-weight: 100;">
+                    <div id="pm25Value" style="font-size: 87.5%; font-weight: 100;">
                         N/A
                     </div>
                 </div>
-                <div style="flex: 1; text-align: center; padding: 0 0.1875em;">
-                    <div style="text-align: center; margin-bottom: 0.1875em; font-size: 0.45em; color: #FFFF00; font-weight: bold;">
+                <div style="flex: 1; text-align: center; padding: 0 1.8%;">
+                    <div style="text-align: center; margin-bottom: 0 1.8%; font-size: 40%; color: #FFFF00; font-weight: bold;">
                         PM10
                     </div>
-                    <div id="pm10Value" style="font-size: 0.875em; font-weight: 100;">
+                    <div id="pm10Value" style="font-size: 87.5%; font-weight: 100;">
                         N/A
                     </div>
                 </div>
             </div>
 
-            <div style="display: flex; margin-bottom: 0.5em; flex-shrink: 0; align-items: center;">
-                <div style="flex: 0 0 14.5%"></div>
-                <div style="position:relative; flex: 0 0 30%; text-align: left; display: flex; align-items: center; padding-top:3%">
+            <div style="display: flex; flex-shrink: 0; align-items: center;">
+                <div style="flex: 0 0 13.5%"></div>
+                <div style="position:relative; flex: 0 0 33%; text-align: left; display: flex; align-items: start; padding-top:3%">
                     <div>
-                        <div style="margin-bottom: 0.125em; font-size: 0.4em;">
-                            Current temp:
+                        <div style="margin-bottom: 12.5%; font-size: 40%;">
+                            Temperature:
                         </div>
-                        <div id="temperature" style="font-size: 1em; font-weight: bold;">
+                        <div id="temperature" style="font-size: 70%; font-weight: bold;">
                             N/A
                         </div>
                     </div>
-                    <div style="position:absolute; top:0; right:0; font-size: 0.7em; margin-left: 0.1875em;">
+                    <div style="position:absolute; top:0; right:0; font-size: 70%; margin-left: 18.75%;">
                         🌡️
                     </div>
                 </div>
 
                 <div style="flex: 0 0 5.1%;"></div>
-                <div style="flex: 0 0 0.3%; width: 1px; height: 2em; background-color: white;"></div>
+                <div style="flex: 0 0 0.3%; width: 1px; height: 100%; background-color: white;"></div>
                 <div style="flex: 0 0 5.1%;"></div>
 
                 <div style="position:relative; flex: 0 0 30%; text-align: left; display: flex; align-items: center; padding-top:3%">
                     <div>
-                        <div style="margin-bottom: 0.125em; font-size: 0.4em;">
+                        <div style="margin-bottom: 12.5%; font-size: 40%;">
                             Humidity:
                         </div>
-                        <div id="humidity" style="font-size: 1em; font-weight: bold;">
+                        <div id="humidity" style="font-size: 70%; font-weight: bold;">
                             N/A
                         </div>
                     </div>
-                    <div style="position:absolute; top:0; left:43%; font-size: 0.7em; margin-left: 0.1875em;">
+                    <div style="position:absolute; top:0; left:43%; font-size: 70%; margin-left: 18.75%;">
                         💧
                     </div>
                 </div>
                 <div style="flex: 0 0 14.5%"></div>
             </div>
 
-            <div style="font-size: 0.5625em; line-height: 1.3; margin-bottom: 0.2em; flex-shrink: 0; padding-inline: 1rem">
-                <div style="text-align:center; color: white; padding: 0.1875em 0; font-size: 0.8em; font-weight: bold;">
+            <div style="font-size: 56.25%; line-height: 1.3; flex-shrink: 0; padding-inline: 1%">
+                <div style="text-align:center; color: white; padding: 2% 0; font-size: 80%; font-weight: bold;">
                     <i>News:</i>
                 </div>
-                <div id="newsContent" style="text-align:center; font-size: 0.7em">
+                <div id="newsContent" style="text-align:center; font-size: 60%">
                     <i>The weather is looking perfect today. It's a wonderful time to head out doors, get active and enjoy some fresh air. 1</i>
                 </div>
             </div>
         </div>
-
-        <div style="color: white; flex-shrink: 0;">
-            <table style="width: 100%; border-collapse: collapse; font-size: 0.6em; font-weight:600">
+        <div style="color: white; flex-shrink: 0; height: 21%">
+            <table style="width: 100%; border-collapse: collapse; font-size: 40%; font-weight:600">
                 <tr style="background-color: white; color: #262f40; font-weight: 600;">
-                    <td style="text-align: center; border: none; padding: 0.125em; " colspan="2">
+                    <td style="text-align: center; border: none; padding: 1.25%; " colspan="2">
                         Air Pollution Index Guideline
                     </td>
                 </tr>
                 <tr>
-                    <td style="text-align: center; border: none; border-right: 1px solid white; padding: 0.0625em;">Status</td>
-                    <td style="text-align: center; border: none; padding: 0.0625em;">API</td>
+                    <td style="text-align: center; border: none; border-right: 1px solid white; padding: 0.625%;">Status</td>
+                    <td style="text-align: center; border: none; padding: 0.625%;">API</td>
                 </tr>
                 <tr style="background-color: #00BFFF; color: #262f40;">
-                    <td style="text-align: center; border: none; border-right: 1px solid white; padding: 0.0625em;">Good</td>
-                    <td style="text-align: center; border: none; padding: 0.0625em;">1-100</td>
+                    <td style="text-align: center; border: none; border-right: 1px solid white; padding: 0.625%;">Good</td>
+                    <td style="text-align: center; border: none; padding: 0.625%;">1-100</td>
                 </tr>
                 <tr style="background-color: #32CD32; color: #262f40;">
-                    <td style="text-align: center; border: none; border-right: 1px solid white; padding: 0.0625em;">Moderate</td>
-                    <td style="text-align: center; border: none; padding: 0.0625em;">101-200</td>
+                    <td style="text-align: center; border: none; border-right: 1px solid white; padding: 0.625%;">Moderate</td>
+                    <td style="text-align: center; border: none; padding: 0.625%;">101-200</td>
                 </tr>
                 <tr style="background-color: #FFFF00; color: #262f40;">
-                    <td style="text-align: center; border: none; border-right: 1px solid white; padding: 0.0625em;">Unhealthy</td>
-                    <td style="text-align: center; border: none; padding: 0.0625em;">201-300</td>
+                    <td style="text-align: center; border: none; border-right: 1px solid white; padding: 0.625%;">Unhealthy</td>
+                    <td style="text-align: center; border: none; padding: 0.625%;">201-300</td>
                 </tr>
                 <tr style="background-color: #FF8C00; color: #262f40;">
-                    <td style="text-align: center; border: none; border-right: 1px solid white; padding: 0.0625em;">Very Unhealthy</td>
-                    <td style="text-align: center; border: none; padding: 0.0625em;">301-400</td>
+                    <td style="text-align: center; border: none; border-right: 1px solid white; padding: 0.625%;">Very Unhealthy</td>
+                    <td style="text-align: center; border: none; padding: 0.625%;">301-400</td>
                 </tr>
                 <tr style="background-color: #FF0000; color: #262f40;">
-                    <td style="text-align: center; border: none; border-right: 1px solid white; padding: 0.0625em;">Hazardous</td>
-                    <td style="text-align: center; border: none; padding: 0.0625em;">401-500+</td>
+                    <td style="text-align: center; border: none; border-right: 1px solid white; padding: 0.625%;">Hazardous</td>
+                    <td style="text-align: center; border: none; padding: 0.625%;">401-500+</td>
                 </tr>
             </table>
         </div>
