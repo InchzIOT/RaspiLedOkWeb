@@ -59,7 +59,34 @@ namespace RaspiLedOkWeb.Controllers
                 _logger.LogError(ex, "Error in Home/Index");
                 return View("ErrorPage");
             }
+            ViewBag.Height = "400px";
+            ViewBag.Width = "200px";
+            return View();
+        }
 
+        public async Task<IActionResult> Test()
+        {
+            try
+            {
+                var configRes = _apiConfigurationService.GetConfiguration();
+                if (!_apiConfigurationService.ValidateConfiguration(configRes))
+                {
+                    return View("ErrorPage");
+                }
+
+                var loginRes = await _syncService.AutoLogin();
+                if (!loginRes.Success)
+                {
+                    return View("ErrorPage");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in Home/Index");
+                return View("ErrorPage");
+            }
+            ViewBag.Height = "400px";
+            ViewBag.Width = "200px";
             return View();
         }
 
@@ -85,8 +112,13 @@ namespace RaspiLedOkWeb.Controllers
                 return View("ErrorPage");
             }
 
-            ViewBag.Height = "2160px";
-            ViewBag.Width = "1080px";
+            ViewBag.Height = "400px";
+            ViewBag.Width = "200px";
+            return View();
+        }
+
+        public IActionResult ErrorPage()
+        {
             return View();
         }
 

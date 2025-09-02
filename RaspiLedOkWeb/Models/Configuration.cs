@@ -23,6 +23,7 @@ namespace RaspiLedOkWeb.Models
         }
         public int TimeoutSeconds { get; set; } = 30;
         public bool EnableLogging { get; set; } = true;
+        public ScreenConfiguration Screen { get; set; } = new ScreenConfiguration();
         public string GetDecryptedPassword()
         {
             return string.IsNullOrEmpty(_encryptedPassword)
