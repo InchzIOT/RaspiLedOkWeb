@@ -526,7 +526,20 @@
                 updateAllSensorData();
             }, 60 * 1000); // 1000 seconds = 1,000,000 milliseconds
 
-            console.log('Dashboard initialized. DateTime updates every minute, sensor data refreshes every 1000 seconds.');
+            // Add keyboard event listener for section switching
+            document.addEventListener('keydown', function(event) {
+                // Press 'S' key to switch sections
+                if (event.key.toLowerCase() === 's') {
+                    toggleSections();
+                }
+            });
+
+            // Auto-switch sections every 10 seconds for demonstration
+            setInterval(function() {
+                toggleSections();
+            }, 10000); // Switch every 10 seconds
+
+            console.log('Dashboard initialized. DateTime updates every minute, sensor data refreshes every 1000 seconds. Press "S" to switch sections manually.');
 
             // Store interval IDs globally so they can be cleared if needed
             window.dateTimeInterval = dateTimeInterval;
@@ -547,13 +560,55 @@
                 window.location.href = "/Configuration/Index"
             }
         }
+
+        // Function to toggle between sections with smooth animation
+        function toggleSections() {
+            const contentSection = document.getElementById('contentSection');
+            const logoSection = document.getElementById('logoSection');
+            
+            const isContentVisible = contentSection.style.display === 'flex' || 
+                                   getComputedStyle(contentSection).display === 'flex';
+            
+            if (isContentVisible) {
+                // Fade out content section
+                contentSection.style.opacity = '0';
+                contentSection.style.transform = 'translateX(-100%)';
+                
+                // After transition, hide content and show logo
+                setTimeout(() => {
+                    contentSection.style.display = 'none';
+                    logoSection.style.display = 'flex';
+                    
+                    // Trigger reflow then animate logo in
+                    logoSection.offsetHeight;
+                    logoSection.style.opacity = '1';
+                    logoSection.style.transform = 'translateX(0)';
+                }, 250);
+                
+            } else {
+                // Fade out logo section
+                logoSection.style.opacity = '0';
+                logoSection.style.transform = 'translateX(100%)';
+                
+                // After transition, hide logo and show content
+                setTimeout(() => {
+                    logoSection.style.display = 'none';
+                    contentSection.style.display = 'flex';
+                    
+                    // Trigger reflow then animate content in
+                    contentSection.offsetHeight;
+                    contentSection.style.opacity = '1';
+                    contentSection.style.transform = 'translateX(0)';
+                }, 250);
+            }
+        }
     </script>
     <style>
         :root {
             --width: @ViewBag.Width;
         }
     </style>
-    <div style="width:100%; height: 100%; background-color: #262f40; color:white; display: flex; flex-direction: column;">
+    <div id="contentSection" style="width:100%; height: 100%; background-color: #262f40; color:white; display: flex; flex-direction: column; transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out; opacity: 1; transform: translateX(0);">
         <div style="text-align: center; flex-shrink: 0; height: 20%; margin-bottom: 3%">
             <div style="display: flex; font-size: 75%; color: white; padding: 0; margin: 0; height: 100%">
                 <div style="display:flex;">
@@ -650,6 +705,19 @@
                 </div>
                 <div id="newsContent" style="text-align:justify; font-size: 75%">
                     The weather is looking perfect today. It's a wonderful time to head out doors, get active and enjoy some fresh air.
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="logoSection" style="width:100%; height: 100%; background-color: #262f40; color:white; display: none; flex-direction: column; transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out; opacity: 0; transform: translateX(100%);">
+        <div style="text-align: center; flex-shrink: 0; height: 100%; margin-bottom: 3%">
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 75%; color: white; padding: 0; margin: 0; height: 100%; gap: 10px;">
+                <div style="height:49%; margin-bottom: 20%">
+                    <img src="../images/logombks.png" style="height: 100%" onclick="redirectToConfiguration()" />
+                </div>
+                <div style="margin-top:-10%">
+                    <div style="font-size: 120%;font-weight: bold;letter-spacing: 2px; margin-bottom: 10%;text-align: center;">MAJLIS BANDARAYA KUCHING SELATAN</div>
+                    <div style="font-size: 120%; letter-spacing: 2px;">ESG SMART POLE</div>
                 </div>
             </div>
         </div>
