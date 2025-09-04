@@ -33,7 +33,21 @@
             const canvas = document.getElementById('apiChart');
             if (!canvas) return;
 
+            // Only create chart if it doesn't exist
+            if (gaugeChart) {
+                return; // Chart already exists, no need to recreate
+            }
+
             const ctx = canvas.getContext('2d');
+            
+            // Fix canvas blur on high DPI displays
+            const rect = canvas.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
+            canvas.style.width = rect.width + 'px';
+            canvas.style.height = rect.height + 'px';
 
             // Get current API value - if null/loading, show default value
             const apiValue = sensorData.api.value ? parseFloat(sensorData.api.value) : 0;
@@ -47,11 +61,6 @@
                 else if (apiValue <= 200) needleColor = '#FFFF00'; // Unhealthy (Yellow)
                 else if (apiValue <= 300) needleColor = '#FF8C00'; // Very Unhealthy (Orange)
                 else needleColor = '#FF0000';                      // Hazardous (Red)
-            }
-
-            // Destroy existing chart if it exists
-            if (gaugeChart) {
-                gaugeChart.destroy();
             }
 
             // Create new gauge chart with Chart.js 2.x syntax
@@ -116,9 +125,9 @@
                         // Position labels outside the chart area but within canvas bounds
                         const labelRadius = gaugeRadius + 40;
 
-                        console.log('Chart Width:', chartWidth, 'Chart Height:', chartHeight);
-                        console.log('Gauge Radius:', gaugeRadius);
-                        console.log('Label Radius:', labelRadius);
+                        // console.log('Chart Width:', chartWidth, 'Chart Height:', chartHeight);
+                        // console.log('Gauge Radius:', gaugeRadius);
+                        // console.log('Label Radius:', labelRadius);
 
                         ctx.save();
                         ctx.fillStyle = '#ffffff';
@@ -133,7 +142,7 @@
                             const x = centerX + Math.cos(angle) * labelRadius;
                             const y = centerY + Math.sin(angle) * labelRadius;
 
-                            console.log(`Label ${label}: angle=${angle.toFixed(2)}, x=${x.toFixed(1)}, y=${y.toFixed(1)}`);
+                            // console.log(`Label ${label}: angle=${angle.toFixed(2)}, x=${x.toFixed(1)}, y=${y.toFixed(1)}`);
 
                             // Draw white text directly - no background
                             ctx.fillStyle = '#ffffff';
@@ -274,8 +283,7 @@
 
         // Function to update UI elements with current sensor data
         function updateUI() {
-            // Update API chart
-            updateGaugeChart();
+            // Chart is created once and updates automatically via plugin
 
             // Update API value and status in the center of the chart
             const apiValueElement = document.getElementById('apiValue');
@@ -291,7 +299,7 @@
                     apiValueElement.textContent = 'N/A';
                     apiStatusElement.textContent = 'No Data';
                     apiStatusElement.style.color = '#ffffff';
-                    newsContent.textContent = 'Hello World';
+                    newsContent.textContent = 'N/A';
                 } else {
                     apiValueElement.textContent = sensorData.api.value;
                     apiValueElement.style.color = getAPIStatusColor(sensorData.api.value);
@@ -421,9 +429,16 @@
                     sensorData.temperature.loading = false;
                     console.log('Temperature updated:', sensorData.temperature.value);
                 } else {
-                    console.warn('Temperature data is null/undefined');
-                    sensorData.temperature.value = 'Error';
-                    sensorData.temperature.loading = false;
+                    if(sensorData.temperature.value !== null)
+                    {
+                        console.warn('Using previous data')
+                    }else
+                    {
+                        console.warn('Temperature data is null/undefined');
+                        sensorData.temperature.value = 'Error';
+                        sensorData.temperature.loading = false;
+                    }
+                    
                 }
 
                 // Update air quality (API)
@@ -432,9 +447,16 @@
                     sensorData.api.loading = false;
                     console.log('API updated:', sensorData.api.value);
                 } else {
-                    console.warn('OverallAPI data is null/undefined');
-                    sensorData.api.value = 'Error';
-                    sensorData.api.loading = false;
+                    if(sensorData.api.value !== null)
+                    {
+                        console.warn('Using previous data')
+                    }
+                    else
+                    {
+                        console.warn('OverallAPI data is null/undefined');
+                        sensorData.api.value = 'Error';
+                        sensorData.api.loading = false;
+                    }
                 }
 
                 // Update humidity
@@ -443,9 +465,16 @@
                     sensorData.humidity.loading = false;
                     console.log('Humidity updated:', sensorData.humidity.value);
                 } else {
-                    console.warn('Humidity data is null/undefined');
-                    sensorData.humidity.value = 'Error';
-                    sensorData.humidity.loading = false;
+                    if(sensorData.humidity.value !== null)
+                    {
+                        console.warn('Using previous data')
+                    }
+                    else
+                    {
+                        console.warn('Humidity data is null/undefined');
+                        sensorData.humidity.value = 'Error';
+                        sensorData.humidity.loading = false;
+                    }
                 }
 
                 // Update pH
@@ -454,9 +483,16 @@
                     sensorData.ph.loading = false;
                     console.log('pH updated:', sensorData.ph.value);
                 } else {
-                    console.warn('pH data is null/undefined');
-                    sensorData.ph.value = 'Error';
-                    sensorData.ph.loading = false;
+                    if(sensorData.ph.value !== null)
+                    {
+                        console.warn('Using previous data')
+                    }
+                    else
+                    {
+                        console.warn('pH data is null/undefined');
+                        sensorData.ph.value = 'Error';
+                        sensorData.ph.loading = false;
+                    }
                 }
 
                 // Update PM10
@@ -465,9 +501,16 @@
                     sensorData.pm10.loading = false;
                     console.log('PM10 updated:', sensorData.pm10.value);
                 } else {
-                    console.warn('PM10 data is null/undefined');
-                    sensorData.pm10.value = 'Error';
-                    sensorData.pm10.loading = false;
+                    if(sensorData.pm10.value !== null)
+                    {
+                        console.warn('Using previous data')
+                    }
+                    else
+                    {
+                        console.warn('PM10 data is null/undefined');
+                        sensorData.pm10.value = 'Error';
+                        sensorData.pm10.loading = false;
+                    }
                 }
 
                 // Update PM2.5
@@ -476,27 +519,42 @@
                     sensorData.pm25.loading = false;
                     console.log('PM2.5 updated:', sensorData.pm25.value);
                 } else {
+                    if(sensorData.pm25.value !== null)
+                    {
+                        console.warn('Using previous data')
+                    }
+                    else
+                    {
                     console.warn('PM2.5 data is null/undefined');
                     sensorData.pm25.value = 'Error';
                     sensorData.pm25.loading = false;
+                    }
                 }
 
                 updateUI();
                 console.log('=== SENSOR DATA UPDATE COMPLETE ===');
             })
             .catch(function(error) {
-                alert(error);
+                // alert(error);
                 console.error('Fetch error details:');
                 console.error('Error type:', error.constructor.name);
                 console.error('Error message:', error.message);
                 console.error('Error stack:', error.stack);
                 console.error('Full error object:', error);
 
-                // Set all sensors to error state
+
+                // Check each sensor individually and only set to error if no previous data exists
                 Object.keys(sensorData).forEach(function(key) {
-                    sensorData[key].value = 'Error';
-                    sensorData[key].loading = false;
+                    if (sensorData[key].value !== null) {
+                        console.warn(`Using previous ${key} data: ${sensorData[key].value}`);
+                        sensorData[key].loading = false; // Stop loading state
+                    } else {
+                        console.warn(`No previous ${key} data available, setting to Error`);
+                        sensorData[key].value = 'Error';
+                        sensorData[key].loading = false;
+                    }
                 });
+
                 updateUI();
             });
         }
