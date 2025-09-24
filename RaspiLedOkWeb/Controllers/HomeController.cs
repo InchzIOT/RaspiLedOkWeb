@@ -53,15 +53,48 @@ namespace RaspiLedOkWeb.Controllers
                 if (!loginRes.Success) {
                     return View("ErrorPage");
                 }
+                
+                ViewBag.Height = (configRes.Screen.Height <= 0 ? 400 : configRes.Screen.Height) + "px";
+                ViewBag.Width = (configRes.Screen.Width <= 0 ? 200 : configRes.Screen.Width) + "px";
+                
+                return View();
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in Home/Index");
                 return View("ErrorPage");
             }
-            ViewBag.Height = "400px";
-            ViewBag.Width = "200px";
-            return View();
+            
+        }
+
+        public async Task<IActionResult> IndexDemo()
+        {
+            try
+            {
+                var configRes = _apiConfigurationService.GetConfiguration();
+                if (!_apiConfigurationService.ValidateConfiguration(configRes))
+                {
+                    return View("ErrorPage");
+                }
+
+                var loginRes = await _syncService.AutoLogin();
+                if (!loginRes.Success)
+                {
+                    return View("ErrorPage");
+                }
+
+                ViewBag.Height = (configRes.Screen.Height <= 0 ? 240 : configRes.Screen.Height) + "px";
+                ViewBag.Width = (configRes.Screen.Width <= 0 ? 120 : configRes.Screen.Width) + "px";
+                ViewBag.Width = "120px";
+
+                return View();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in Home/Index");
+                return View("ErrorPage");
+            }
+
         }
 
         public async Task<IActionResult> Logo()
@@ -79,15 +112,16 @@ namespace RaspiLedOkWeb.Controllers
                 {
                     return View("ErrorPage");
                 }
+                ViewBag.Height = configRes.Screen.Height + "px";
+                ViewBag.Height = configRes.Screen.Width + "px";
+                return View();
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in Home/Index");
                 return View("ErrorPage");
             }
-            ViewBag.Height = "400px";
-            ViewBag.Width = "200px";
-            return View();
+            
         }
 
         public async Task<IActionResult> Combine()
@@ -105,15 +139,15 @@ namespace RaspiLedOkWeb.Controllers
                 {
                     return View("ErrorPage");
                 }
+                ViewBag.Height = configRes.Screen.Height + "px";
+                ViewBag.Height = configRes.Screen.Width + "px";
+                return View();
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in Home/Index");
                 return View("ErrorPage");
             }
-            ViewBag.Height = "400px";
-            ViewBag.Width = "200px";
-            return View();
         }
 
         public async Task<IActionResult> Test()
@@ -131,15 +165,15 @@ namespace RaspiLedOkWeb.Controllers
                 {
                     return View("ErrorPage");
                 }
+                ViewBag.Height = configRes.Screen.Height + "px";
+                ViewBag.Height = configRes.Screen.Width + "px";
+                return View();
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in Home/Index");
                 return View("ErrorPage");
             }
-            ViewBag.Height = "400px";
-            ViewBag.Width = "200px";
-            return View();
         }
 
         public async Task<IActionResult> IndexV2()
@@ -157,16 +191,15 @@ namespace RaspiLedOkWeb.Controllers
                 {
                     return View("ErrorPage");
                 }
+                ViewBag.Height = configRes.Screen.Height + "px";
+                ViewBag.Height = configRes.Screen.Width + "px";
+                return View();
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in Home/Index");
                 return View("ErrorPage");
             }
-
-            ViewBag.Height = "400px";
-            ViewBag.Width = "200px";
-            return View();
         }
 
         public IActionResult ErrorPage()

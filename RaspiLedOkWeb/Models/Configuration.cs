@@ -4,8 +4,8 @@ namespace RaspiLedOkWeb.Models
 {
     public class ScreenConfiguration
     {
-        public string Width { get; set; }
-        public string Height { get; set; }
+        public double Width { get; set; }
+        public double Height { get; set; }
     }
 
     public class ApiConfiguration

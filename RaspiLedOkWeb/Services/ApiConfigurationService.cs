@@ -163,7 +163,8 @@ namespace RaspiLedOkWeb.Services
                     ["Username"] = configuration.Username,
                     ["Password"] = configuration.Password,
                     ["TimeoutSeconds"] = configuration.TimeoutSeconds,
-                    ["EnableLogging"] = configuration.EnableLogging
+                    ["EnableLogging"] = configuration.EnableLogging,
+                    ["Screen"] = JsonSerializer.Serialize(configuration.Screen)
                 };
 
                 settingsDict[ApiConfiguration.SectionName] = apiConfigDict;
