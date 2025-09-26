@@ -43,11 +43,11 @@
             // Fix canvas blur on high DPI displays
             const rect = canvas.getBoundingClientRect();
             const dpr = window.devicePixelRatio || 1;
-            canvas.width = rect.width * dpr;
-            canvas.height = rect.height * dpr;
+            canvas.width = rect.width * dpr - 5;
+            canvas.height = rect.height * dpr - 5;
             ctx.scale(dpr, dpr);
-            canvas.style.width = rect.width + 'px';
-            canvas.style.height = rect.height + 'px';
+            canvas.style.width = rect.width + 'px' - 5;
+            canvas.style.height = rect.height + 'px' - 5;
 
             // Get current API value - if null/loading, show default value
             const apiValue = sensorData.api.value ? parseFloat(sensorData.api.value) : 0;
@@ -85,15 +85,16 @@
                     maintainAspectRatio: false,
                     circumference: Math.PI, // Chart.js 2.x syntax for 180 degrees
                     rotation: Math.PI, // Chart.js 2.x syntax for starting at bottom
-                    cutoutPercentage: 70, // Chart.js 2.x syntax (not cutout)
+                    cutoutPercentage: 68, // Chart.js 2.x syntax (not cutout)
                     layout: {
                         padding: {
-                            left: 10,
-                            right: 10,
+                            left: 0,
+                            right: 0,
                             top: 8,
                             bottom: 15
                         }
-                    },legend: {
+                    },
+                    legend: {
                         display: false
                     },
                     tooltips: { // Chart.js 2.x uses 'tooltips' not 'tooltip'
@@ -121,9 +122,9 @@
                         // FIXED: Calculate width and height from chartArea bounds
                         const chartWidth = chartArea.right - chartArea.left;
                         const chartHeight = chartArea.bottom - chartArea.top;
-                        const gaugeRadius = Math.min(chartWidth, chartHeight) / 2;
+                        const gaugeRadius = Math.min(chartWidth, chartHeight) / 2 - 3;
                         // Position labels outside the chart area but within canvas bounds
-                        const labelRadius = gaugeRadius + 28;
+                        const labelRadius = gaugeRadius + 30;
 
                         // console.log('Chart Width:', chartWidth, 'Chart Height:', chartHeight);
                         // console.log('Gauge Radius:', gaugeRadius);
@@ -131,7 +132,7 @@
 
                         ctx.save();
                         ctx.fillStyle = '#ffffff';
-                        ctx.font = 'bold 8px Arial';
+                        ctx.font = 'bold 9px Arial';
                         ctx.textAlign = 'center';
                         ctx.textBaseline = 'middle';
 
@@ -629,12 +630,12 @@
         <div style="color: white; padding: 3% 3% 0 3%; flex: 1; display: flex; flex-direction: column; height: 74.5%">
             <div style="position:relative; flex-shrink: 0; height: 45%">
                 <div style="text-align: center; margin-bottom: 10%; font-size: 100%; height: 10%">Air Pollution Index</div>
-                <div style="text-align: center; height: 80%; display: flex; align-items: center; justify-content: center; flex-direction: column; position: relative;">
+                <div style="text-align: center; height: 76%; display: flex; align-items: center; justify-content: center; flex-direction: column; position: relative;">
                     <canvas id="apiChart" style="height:100%; width:100%;"></canvas>
 
                     <div style="position: absolute; top: 70%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
-                        <div id="apiValue" style="font-weight: bold; font-size: 100%; color: #ffffff;">N/A</div>
-                        <div id="apiStatus" style="font-size: 100%; color: #ffffff;">No Data</div>
+                        <div id="apiValue" style="font-weight: bold; font-size: 80%; color: #ffffff;">N/A</div>
+                        <div id="apiStatus" style="font-size: 80%; color: #ffffff;">No Data</div>
                     </div>
                 </div>
             </div>
@@ -681,7 +682,7 @@
                 <div style="position:relative; flex: 0 0 30%; text-align: left; display: flex; align-items: center; padding-top:3%">
                     <div>
                         <div style="margin-bottom: 12.5%; font-size: 80%;">
-                            Humi:
+                            % RH:
                         </div>
                         <div id="humidity" style="font-size: 100%; font-weight: bold;">
                             N/A
