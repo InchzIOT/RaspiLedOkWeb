@@ -30,7 +30,25 @@ namespace RaspiLedOkWeb.Controllers
         private readonly ISyncService _syncService;
         private readonly IApiConfigurationService _apiConfigurationService;
         private static AirSensorModel cacheAirSensorModel;
-        private static PoleSensorModel cacheAirAndWaterSensorModel;
+        private static PoleSensorModel cacheAirAndWaterSensorModel = new PoleSensorModel()
+        {
+            Temperature = "28.5",
+            MinTemp = "24.0",
+            MaxTemp = "32.0",
+            Humidity = "70",
+            Pm25 = "10",
+            Pm10 = "10",
+            O3 = "0.05",
+            Co = "0.01",
+            No2 = "0.03",
+            So2 = "0.02",
+            OverallAPI = "50",
+            pH = "6.7",
+            Message = "Using mock sensor data",
+            Error = null,
+            Success = true
+        };
+
         //private static Dictionary<DeviceType<Dictionary<AirSensorsKey, string>>() keyValuesPairs;
         public HomeController(ILogger<HomeController> logger, ISyncService syncService, IApiConfigurationService apiConfigurationService)
         {
@@ -49,10 +67,6 @@ namespace RaspiLedOkWeb.Controllers
                     return View("ErrorPage");
                 }
 
-                var loginRes = await _syncService.AutoLogin();
-                if (!loginRes.Success) {
-                    return View("ErrorPage");
-                }
                 
                 ViewBag.Height = (configRes.Screen.Height <= 0 ? 400 : configRes.Screen.Height) + "px";
                 ViewBag.Width = (configRes.Screen.Width <= 0 ? 200 : configRes.Screen.Width) + "px";
@@ -257,6 +271,13 @@ namespace RaspiLedOkWeb.Controllers
             try
             {
                 bool success = true;
+
+                var loginRes = await _syncService.AutoLogin();
+                if (!loginRes.Success)
+                {
+                    return Json(new { success = true, message = "No air device had found", data = cacheAirAndWaterSensorModel });
+                }
+
                 var asset = GetAssets().FirstOrDefault();
                 var airDevice = GetDevicesByAsset(asset.Id.ToString()).FirstOrDefault(x => x.Name.ToLower().Contains(DeviceType.Air.ToString().ToLower()));
                 var waterDevice = GetDevicesByAsset(asset.Id.ToString()).FirstOrDefault(x => x.Name.ToLower().Contains(DeviceType.Ph.ToString().ToLower()));
