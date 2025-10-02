@@ -69,7 +69,8 @@ namespace RaspiLedOkWeb.Controllers
                     Username = configuration.Username,
                     Password = configuration.Password,
                     TimeoutSeconds = configuration.TimeoutSeconds,
-                    EnableLogging = configuration.EnableLogging
+                    EnableLogging = configuration.EnableLogging,
+                    Screen = configuration.Screen
                 };
                 
                 return Json(safeConfiguration);

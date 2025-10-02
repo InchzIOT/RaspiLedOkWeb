@@ -58,6 +58,28 @@
                     <div class="form-text mt-2">Capture API requests and responses for debugging</div>
                 </div>
             </div>
+
+
+
+            <div class="col-md-6">
+                <div class="mt-4 pt-2">
+                    <label class="form-label fw-semibold" asp-for="Screen.Width">
+                        <i class="bi bi-arrows-fullscreen me-2"></i>Screen Width
+                    </label>
+                    <input asp-for="Screen.Width" class="form-control" type="number" step="0.01" placeholder="Enter width">
+                    <div class="form-text mt-2">Screen width in pixels or units</div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="mt-4 pt-2">
+                    <label class="form-label fw-semibold" asp-for="Screen.Height">
+                        <i class="bi bi-arrows-fullscreen me-2"></i>Screen Height
+                    </label>
+                    <input asp-for="Screen.Height" class="form-control" type="number" step="0.01" placeholder="Enter height">
+                    <div class="form-text mt-2">Screen height in pixels or units</div>
+                </div>
+            </div>
             
             <div class="col-12 pt-3">
                 <div class="d-flex gap-3 flex-wrap">

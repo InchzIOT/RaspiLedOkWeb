@@ -1,0 +1,700 @@
+﻿@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real Time Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo+Black&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Roboto:ital,wght@0,100..900;1,100..900&family=Tirra:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="~/lib/chart-js/chart.js"></script>
+</head>
+<body style="margin: 0; width: var(--width); height: calc(var(--width)*2.1); font-family: system-ui; overflow: hidden; font-size: calc(var(--width)/10); ">
+    <script>
+        // Sensor data object to store all sensor values
+        let sensorData = {
+            temperature: { value: null, loading: true },
+            api: { value: null, loading: true },
+            humidity: { value: null, loading: true },
+            ph: { value: null, loading: true },
+            pm10: { value: null, loading: true },
+            pm25: { value: null, loading: true }
+        };
+
+        // Chart.js gauge chart variable
+        let gaugeChart = null;
+
+        // Function to create/update the Chart.js gauge
+        function updateGaugeChart() {
+            const canvas = document.getElementById('apiChart');
+            if (!canvas) return;
+
+            // Only create chart if it doesn't exist
+            if (gaugeChart) {
+                return; // Chart already exists, no need to recreate
+            }
+
+            const ctx = canvas.getContext('2d');
+            
+            // Fix canvas blur on high DPI displays
+            const rect = canvas.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = rect.width * dpr - 5;
+            canvas.height = rect.height * dpr - 5;
+            ctx.scale(dpr, dpr);
+            canvas.style.width = rect.width + 'px' - 5;
+            canvas.style.height = rect.height + 'px' - 5;
+
+            // Get current API value - if null/loading, show default value
+            const apiValue = sensorData.api.value ? parseFloat(sensorData.api.value) : 0;
+            const maxValue = 500;
+
+            // Determine color based on API value according to guidelines
+            let needleColor = '#ffffff'; // Default white for no data
+            if (apiValue > 0) {
+                if (apiValue <= 50) needleColor = '#00BFFF';      // Good (Blue)
+                else if (apiValue <= 100) needleColor = '#32CD32'; // Moderate (Green)
+                else if (apiValue <= 200) needleColor = '#FFFF00'; // Unhealthy (Yellow)
+                else if (apiValue <= 300) needleColor = '#FF8C00'; // Very Unhealthy (Orange)
+                else needleColor = '#FF0000';                      // Hazardous (Red)
+            }
+
+            // Create new gauge chart with Chart.js 2.x syntax
+            gaugeChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    datasets: [{
+                        data: [100, 100, 100, 100, 100], // Equal segments for the gauge ranges
+                        backgroundColor: [
+                            '#00BFFF', // Blue (0-100) Good
+                            '#32CD32', // Green (100-200) Moderate
+                            '#FFFF00', // Yellow (200-300) Unhealthy
+                            '#FF8C00', // Orange (300-400) Very Unhealthy
+                            '#FF0000', // Red (400-500) Hazardous
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#262f40'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    circumference: Math.PI, // Chart.js 2.x syntax for 180 degrees
+                    rotation: Math.PI, // Chart.js 2.x syntax for starting at bottom
+                    cutoutPercentage: 68, // Chart.js 2.x syntax (not cutout)
+                    layout: {
+                        padding: {
+                            left: 0,
+                            right: 0,
+                            top: 8,
+                            bottom: 15
+                        }
+                    },
+                    legend: {
+                        display: false
+                    },
+                    tooltips: { // Chart.js 2.x uses 'tooltips' not 'tooltip'
+                        enabled: false
+                    },
+                    elements: {
+                        arc: {
+                            borderWidth: 1
+                        }
+                    }
+                },
+                plugins: [{
+                    afterDraw: function(chart) {
+                        const ctx = chart.ctx;
+                        const chartArea = chart.chartArea;
+                        const centerX = (chartArea.left + chartArea.right) / 2;
+                        const centerY = chartArea.bottom - 5; // Position at bottom of semicircle
+
+                        // Get current API value for needle position
+                        const currentApiValue = sensorData.api.value ? parseFloat(sensorData.api.value) : 0;
+                        console.log('Current API Value:', currentApiValue);
+
+                        // Draw scale labels - FIXED POSITIONING AND VISIBILITY
+                        const labels = [0, 50, 100, 200, 300, 400];
+                        // FIXED: Calculate width and height from chartArea bounds
+                        const chartWidth = chartArea.right - chartArea.left;
+                        const chartHeight = chartArea.bottom - chartArea.top;
+                        const gaugeRadius = Math.min(chartWidth, chartHeight) / 2 - 3;
+                        // Position labels outside the chart area but within canvas bounds
+                        const labelRadius = gaugeRadius + 30;
+
+                        // console.log('Chart Width:', chartWidth, 'Chart Height:', chartHeight);
+                        // console.log('Gauge Radius:', gaugeRadius);
+                        // console.log('Label Radius:', labelRadius);
+
+                        ctx.save();
+                        ctx.fillStyle = '#ffffff';
+                        ctx.font = 'bold 9px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+
+                        labels.forEach(function(label, index) {
+                            // Calculate angle for each label (spread across 180 degrees from left to right)
+                            const angle = Math.PI + (index / (labels.length - 1)) * Math.PI;
+                            const x = centerX + Math.cos(angle) * labelRadius;
+                            const y = centerY + Math.sin(angle) * labelRadius + 5;
+
+                            // console.log(`Label ${label}: angle=${angle.toFixed(2)}, x=${x.toFixed(1)}, y=${y.toFixed(1)}`);
+
+                            // Draw white text directly - no background
+                            ctx.fillStyle = '#ffffff';
+                            ctx.fillText(label.toString(), x, y);
+                        });
+
+                        // Only draw needle if we have valid data
+                        if (currentApiValue >= 0 && !sensorData.api.loading) {
+                            let tempApiValue = 0
+                            if(currentApiValue >= 100){
+                                tempApiValue = currentApiValue + 100
+                            }
+                            else
+                            {
+                                tempApiValue = currentApiValue * 2
+                            }
+
+
+                            // Calculate needle angle (180° spread for 0-500 range)
+                            const needleAngle = Math.PI + (Math.min(tempApiValue, maxValue) / maxValue) * Math.PI;
+                            const needleLength = gaugeRadius - 5; // FIXED: Use calculated gaugeRadius
+
+                            // Determine needle color based on current value
+                            let currentNeedleColor = '#ffffff';
+                            if (currentApiValue > 0) {
+                                if (currentApiValue <= 50) currentNeedleColor = '#00BFFF';
+                                else if (currentApiValue <= 100) currentNeedleColor = '#32CD32';
+                                else if (currentApiValue <= 200) currentNeedleColor = '#FFFF00';
+                                else if (currentApiValue <= 300) currentNeedleColor = '#FF8C00';
+                                else currentNeedleColor = '#FF0000';
+                            }
+
+                            // Calculate needle end position
+                            const needleEndX = centerX + Math.cos(needleAngle) * needleLength;
+                            const needleEndY = centerY + Math.sin(needleAngle) * needleLength;
+
+                            // COMPLETELY FIXED TRIANGLE POINTER
+                            const triangleLength = 8;
+                            ctx.fillStyle = currentNeedleColor;
+                            ctx.strokeStyle = '#ffffff';
+                            ctx.lineWidth = 2;
+
+                            // Create a proper triangle at the needle tip
+                            ctx.beginPath();
+
+                            // Triangle tip - extends beyond needle end
+                            const tipX = needleEndX + Math.cos(needleAngle) * triangleLength;
+                            const tipY = needleEndY + Math.sin(needleAngle) * triangleLength;
+
+                            // Triangle base - two points on either side of needle end
+                            const baseWidth = 4;
+                            const leftBaseX = needleEndX + Math.cos(needleAngle + Math.PI/2) * baseWidth;
+                            const leftBaseY = needleEndY + Math.sin(needleAngle + Math.PI/2) * baseWidth;
+                            const rightBaseX = needleEndX + Math.cos(needleAngle - Math.PI/2) * baseWidth;
+                            const rightBaseY = needleEndY + Math.sin(needleAngle - Math.PI/2) * baseWidth;
+
+                            // Draw the triangle - FILL ONLY, NO STROKE
+                            ctx.moveTo(tipX, tipY);
+                            ctx.lineTo(leftBaseX, leftBaseY);
+                            ctx.lineTo(rightBaseX, rightBaseY);
+                            ctx.closePath();
+                            ctx.fill();
+                            // REMOVED: ctx.stroke() to eliminate any lines
+                        }
+
+                        ctx.restore();
+                    }
+                }]
+            });
+        }
+
+        // Function to update date and time in header
+        function updateDateTime() {
+            const now = new Date();
+
+            // Format date: "15 Aug 2025 / Friday"
+            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thrs', 'Fri', 'Sat'];
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                              'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+            const dayName = dayNames[now.getDay()];
+            const day = now.getDate().toString().padStart(2, '0');
+            // const month = monthNames[now.getMonth()];
+            const month = now.getMonth();
+            const year = now.getFullYear();
+
+            const dateString = `${day}/${month}/${year}`;
+            const dateString1 = `${dayName}`;
+
+            // Format time: "09:10AM"
+            let hours = now.getHours();
+            const minutes = now.getMinutes();
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12; // the hour '0' should be '12'
+            const minutesStr = minutes < 10 ? '0' + minutes : minutes;
+            const timeString = `${hours}:${minutesStr}${ampm}`;
+
+            // Update the header display elements
+            const dateDisplay = document.getElementById('dateDisplay');
+            // const dateDisplay1 = document.getElementById('dateDisplay1');
+            const timeDisplay = document.getElementById('timeDisplay');
+            if (dateDisplay) dateDisplay.textContent = dateString + " " + dateString1;
+            // if (dateDisplay1) dateDisplay1.textContent = dateString1;
+            if (timeDisplay) timeDisplay.textContent = timeString;
+
+            console.log('DateTime updated:', dateString, timeString);
+        }
+
+        function getAPIStatus(value) {
+            const apiValue = parseFloat(value) || 0;
+            if (apiValue <= 50) return 'Good';
+            else if (apiValue <= 100) return 'Moderate';
+            else if (apiValue <= 200) return 'Unhealthy';
+            else if (apiValue <= 300) return 'Very Unhealthy';
+            else return 'Hazardous';
+        }
+
+        // Function to get API status color
+        function getAPIStatusColor(value) {
+            const apiValue = parseFloat(value) || 0;
+            if (apiValue <= 50) return '#00BFFF';
+            else if (apiValue <= 100) return '#32CD32';
+            else if (apiValue <= 200) return '#FFFF00';
+            else if (apiValue <= 300) return '#FF8C00';
+            else return '#FF0000';
+        }
+
+        // Function to get API status color
+        function getNewsMessage(value) {
+            const apiValue = parseFloat(value) || 0;
+            if(apiValue <= 50) return "Air quality is <span style='font-weight:bold' id='newsApi'>Good</span>. Please enjoy your outdoor activities!";
+            if (apiValue <= 100) return "Air quality is <span style='font-weight:bold' id='newsApi'>Moderate</span>. Safe for most, but children & elderly should limit long outdoor exposure.";
+            else if (apiValue <= 200) return "Limit outdoor exposure & wear a protective mask, as the air is now unhealthy, especially for sensitive groups";
+            else if (apiValue <= 300) return "Everyone should now avoid outdoor exertion & wear an N95 mask if leaving the indoors is necessary.";
+            else if (apiValue <= 400) return "Remain indoors to avoid serious health risks from hazardous air; an N95 mask is critical for any essential exposure.";
+            else return "The weather is looking perfect today. It's a wonderful time to head out doors, get active & enjoy some fresh air. 15";
+        }
+
+        // Function to update UI elements with current sensor data
+        function updateUI() {
+            // Chart is created once and updates automatically via plugin
+
+            // Update API value and status in the center of the chart
+            const apiValueElement = document.getElementById('apiValue');
+            const apiStatusElement = document.getElementById('apiStatus');
+            if (apiValueElement && apiStatusElement) {
+                if (sensorData.api.loading) {
+                    apiValueElement.textContent = '...';
+                    apiStatusElement.textContent = '...';
+                    apiStatusElement.style.color = '#ffffff';
+                } else if (sensorData.api.value === null || sensorData.api.value === 'Error') {
+                    apiValueElement.textContent = 'N/A';
+                    apiStatusElement.textContent = 'No Data';
+                    apiStatusElement.style.color = '#ffffff';
+                } else {
+                    apiValueElement.textContent = sensorData.api.value;
+                    apiValueElement.style.color = getAPIStatusColor(sensorData.api.value);
+                    apiStatusElement.textContent = getAPIStatus(sensorData.api.value);
+                    apiStatusElement.style.color = getAPIStatusColor(sensorData.api.value);
+                    const newsApi = document.getElementById('newsApi');
+                    if(newsApi){
+                        newsApi.style.color = getAPIStatusColor(sensorData.api.value);
+                    }
+                    // newsContent.textContent = getNewsMessage(sensorData.api.value);
+                }
+            }
+
+            // Update temperature
+            const tempElement = document.getElementById('temperature');
+            if (tempElement) {
+                if (sensorData.temperature.loading) {
+                    tempElement.textContent = '...';
+                } else if (sensorData.temperature.value === null || sensorData.temperature.value === 'Error') {
+                    tempElement.textContent = 'N/A';
+                } else {
+                    tempElement.textContent = `${sensorData.temperature.value}°C`;
+                }
+            }
+
+            // Update humidity
+            const humidityElement = document.getElementById('humidity');
+            if (humidityElement) {
+                if (sensorData.humidity.loading) {
+                    humidityElement.textContent = '...';
+                } else if (sensorData.humidity.value === null || sensorData.humidity.value === 'Error') {
+                    humidityElement.textContent = 'N/A';
+                } else {
+                    humidityElement.textContent = `${sensorData.humidity.value}%`;
+                }
+            }
+
+            // Update PM2.5
+            const pm25Element = document.getElementById('pm25Value');
+            if (pm25Element) {
+                if (sensorData.pm25.loading) {
+                    pm25Element.innerHTML = '...';
+                } else if (sensorData.pm25.value === null || sensorData.pm25.value === 'Error') {
+                    pm25Element.innerHTML = 'N/A';
+                } else {
+                    pm25Element.innerHTML = `${sensorData.pm25.value} <span style="font-size: 0.6em;">µg/m³</span>`;
+                }
+            }
+
+            // Update PM10
+            const pm10Element = document.getElementById('pm10Value');
+            if (pm10Element) {
+                if (sensorData.pm10.loading) {
+                    pm10Element.innerHTML = '...';
+                } else if (sensorData.pm10.value === null || sensorData.pm10.value === 'Error') {
+                    pm10Element.innerHTML = 'N/A';
+                } else {
+                    pm10Element.innerHTML = `${sensorData.pm10.value} <span style="font-size: 0.6em;">µg/m³</span>`;
+                }
+            }
+
+            // Update timestamp
+            const timestampElement = document.getElementById('timestamp');
+            if (timestampElement) {
+                const now = new Date();
+                const options = {
+                    weekday: 'long',
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                };
+                const dateStr = now.toLocaleDateString('en-GB', options);
+                const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+                document.getElementById('dateDisplay').textContent = dateStr.split(',')[0] + ', ' + dateStr.split(' ').slice(1, 4).join(' ');
+                document.getElementById('timeDisplay').textContent = timeStr;
+            }
+
+            console.log('UI updated with latest sensor data');
+        }
+
+        function updateAllSensorData() {
+            console.log('=== FETCHING SENSOR DATA ===');
+            console.log('Request URL:', window.location.origin + '/Home/GetAirAndWaterSensorValue');
+
+            // Set loading state
+            Object.keys(sensorData).forEach(function(key) {
+                sensorData[key].loading = true;
+            });
+            updateUI();
+
+            fetch('@Url.Action("GetAirAndWaterSensorValue")', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                credentials: 'same-origin'
+            })
+            .then(function(response) {
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                console.log('Response URL:', response.url);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}, statusText: ${response.statusText}`);
+                }
+
+                // Check if response is actually JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error(`Expected JSON response but got: ${contentType}`);
+                }
+
+                return response.json();
+            })
+            .then(function(data) {
+                console.log('Received data:', data.data);
+
+                // Update temperature
+                if (data.data.temperature !== null && data.data.temperature !== undefined) {
+                    sensorData.temperature.value = parseFloat(data.data.temperature).toFixed(1);
+                    sensorData.temperature.loading = false;
+                    console.log('Temperature updated:', sensorData.temperature.value);
+                } else {
+                    if(sensorData.temperature.value !== null)
+                    {
+                        console.warn('Using previous data')
+                    }else
+                    {
+                        console.warn('Temperature data is null/undefined');
+                        sensorData.temperature.value = 'Error';
+                        sensorData.temperature.loading = false;
+                    }
+                    
+                }
+
+                // Update air quality (API)
+                if (data.data.overallAPI !== null && data.data.overallAPI !== undefined) {
+                    sensorData.api.value = Math.round(data.data.overallAPI).toString();
+                    sensorData.api.loading = false;
+                    console.log('API updated:', sensorData.api.value);
+                } else {
+                    if(sensorData.api.value !== null)
+                    {
+                        console.warn('Using previous data')
+                    }
+                    else
+                    {
+                        console.warn('OverallAPI data is null/undefined');
+                        sensorData.api.value = 'Error';
+                        sensorData.api.loading = false;
+                    }
+                }
+
+                // Update humidity
+                if (data.data.humidity !== null && data.data.humidity !== undefined) {
+                    sensorData.humidity.value = Math.round(data.data.humidity).toString();
+                    sensorData.humidity.loading = false;
+                    console.log('Humidity updated:', sensorData.humidity.value);
+                } else {
+                    if(sensorData.humidity.value !== null)
+                    {
+                        console.warn('Using previous data')
+                    }
+                    else
+                    {
+                        console.warn('Humidity data is null/undefined');
+                        sensorData.humidity.value = 'Error';
+                        sensorData.humidity.loading = false;
+                    }
+                }
+
+                // Update pH
+                if (data.data.pH !== null && data.data.pH !== undefined) {
+                    sensorData.ph.value = parseFloat(data.data.pH).toFixed(1);
+                    sensorData.ph.loading = false;
+                    console.log('pH updated:', sensorData.ph.value);
+                } else {
+                    if(sensorData.ph.value !== null)
+                    {
+                        console.warn('Using previous data')
+                    }
+                    else
+                    {
+                        console.warn('pH data is null/undefined');
+                        sensorData.ph.value = 'Error';
+                        sensorData.ph.loading = false;
+                    }
+                }
+
+                // Update PM10
+                if (data.data.pm10 !== null && data.data.pm10 !== undefined) {
+                    sensorData.pm10.value = parseFloat(data.data.pm10).toFixed(1);
+                    sensorData.pm10.loading = false;
+                    console.log('PM10 updated:', sensorData.pm10.value);
+                } else {
+                    if(sensorData.pm10.value !== null)
+                    {
+                        console.warn('Using previous data')
+                    }
+                    else
+                    {
+                        console.warn('PM10 data is null/undefined');
+                        sensorData.pm10.value = 'Error';
+                        sensorData.pm10.loading = false;
+                    }
+                }
+
+                // Update PM2.5
+                if (data.data.pm25 !== null && data.data.pm25 !== undefined) {
+                    sensorData.pm25.value = parseFloat(data.data.pm25).toFixed(1);
+                    sensorData.pm25.loading = false;
+                    console.log('PM2.5 updated:', sensorData.pm25.value);
+                } else {
+                    if(sensorData.pm25.value !== null)
+                    {
+                        console.warn('Using previous data')
+                    }
+                    else
+                    {
+                    console.warn('PM2.5 data is null/undefined');
+                    sensorData.pm25.value = 'Error';
+                    sensorData.pm25.loading = false;
+                    }
+                }
+
+                updateUI();
+                console.log('=== SENSOR DATA UPDATE COMPLETE ===');
+            })
+            .catch(function(error) {
+                // alert(error);
+                console.error('Fetch error details:');
+                console.error('Error type:', error.constructor.name);
+                console.error('Error message:', error.message);
+                console.error('Error stack:', error.stack);
+                console.error('Full error object:', error);
+
+
+                // Check each sensor individually and only set to error if no previous data exists
+                Object.keys(sensorData).forEach(function(key) {
+                    if (sensorData[key].value !== null) {
+                        console.warn(`Using previous ${key} data: ${sensorData[key].value}`);
+                        sensorData[key].loading = false; // Stop loading state
+                    } else {
+                        console.warn(`No previous ${key} data available, setting to Error`);
+                        sensorData[key].value = 'Error';
+                        sensorData[key].loading = false;
+                    }
+                });
+
+                updateUI();
+            });
+        }
+
+        // Initialize dashboard when page loads
+        window.onload = function() {
+            console.log('Dashboard initializing...');
+
+            // Update date/time immediately
+            updateDateTime();
+
+            // Create initial chart
+            updateGaugeChart();
+            updateUI();
+
+            // Fetch initial data
+            updateAllSensorData();
+
+            // Set up interval to update date/time every minute (60 seconds)
+            const dateTimeInterval = setInterval(function() {
+                updateDateTime();
+            }, 60 * 1000); // Update every minute
+
+            // Set up interval to fetch data every 1000 seconds (16.67 minutes)
+            const fetchInterval = setInterval(function() {
+                console.log('Scheduled data fetch triggered');
+                updateAllSensorData();
+            }, 60 * 1000); // 1000 seconds = 1,000,000 milliseconds
+
+            console.log('Dashboard initialized. DateTime updates every minute, sensor data refreshes every 1000 seconds.');
+
+            // Store interval IDs globally so they can be cleared if needed
+            window.dateTimeInterval = dateTimeInterval;
+            window.sensorDataInterval = fetchInterval;
+        };
+
+        // Function to manually refresh data (can be called from console or button)
+        function refreshData() {
+            console.log('Manual data refresh triggered');
+            updateAllSensorData();
+        }
+
+        var clickCount = 0;
+        function redirectToConfiguration(){
+            console.log(clickCount)
+            clickCount ++;
+            if(clickCount > 5){
+                window.location.href = "/Configuration/Index"
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --width: @ViewBag.Width;
+        }
+    </style>
+    <div style="width:100%; height: 100%; background-color: #262f40; color:white; display: flex; flex-direction: column;">
+        <div style="text-align: center; flex-shrink: 0; height: 20%; margin-bottom: 3%">
+            <div style="display: flex; font-size: 100%; color: white; padding: 0; margin: 0; height: 100%">
+                <div style="display:flex; flex-direction: column; height: 100%; width: 100%; justify-content: space-between">
+                    <div id="dateDisplay" style="padding: 1%; height: 100%; width: 100%;display: flex; justify-content: center;align-items: center;">
+                        23 Jul 2025
+                    </div>
+                    @* <div id="dateDisplay1" style="padding: 1%; height: 100%; width: 100%;display: flex; justify-content: center;align-items: center;">
+                        Friday
+                    </div> *@
+                    <div style="flex: 0 0 5%;">
+                    </div>
+                    <div id="timeDisplay" style="font-weight: 700; padding: 1%; height: 100%; width: 100%;display: flex; justify-content: center;align-items: center;">
+                        09:10AM
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div style="background-color: white; height: 0.5%; width: 100%; flex-shrink: 0;"></div>
+        <div style="color: white; padding: 3% 3% 0 3%; flex: 1; display: flex; flex-direction: column; height: 74.5%">
+            <div style="position:relative; flex-shrink: 0; height: 45%">
+                <div style="text-align: center; margin-bottom: 10%; font-size: 100%; height: 10%">Air Pollution Index</div>
+                <div style="text-align: center; height: 76%; display: flex; align-items: center; justify-content: center; flex-direction: column; position: relative;">
+                    <canvas id="apiChart" style="height:100%; width:100%;"></canvas>
+
+                    <div style="position: absolute; top: 70%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
+                        <div id="apiValue" style="font-weight: bold; font-size: 80%; color: #ffffff;">N/A</div>
+                        <div id="apiStatus" style="font-size: 80%; color: #ffffff;">No Data</div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; margin-bottom: 5%; flex-shrink: 0; margin-top:0%">
+                <div style="flex: 1; text-align: center; padding: 0 1.8%;">
+                    <div style="text-align: center; margin-bottom: 0 1.8%; font-size: 100%; color: #FFFF00; font-weight: bold;">
+                        PM2.5
+                    </div>
+                    <div id="pm25Value" style="font-size: 100%; font-weight: 300;">
+                        N/A
+                    </div>
+                </div>
+                <div style="flex: 1; text-align: center; padding: 0 1.8%;">
+                    <div style="text-align: center; margin-bottom: 0 1.8%; font-size: 100%; color: #FFFF00; font-weight: bold;">
+                        PM10
+                    </div>
+                    <div id="pm10Value" style="font-size: 100%; font-weight: 300;">
+                        N/A
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; flex-shrink: 0; align-items: center;">
+                <div style="flex: 0 0 10%"></div>
+                <div style="position:relative; flex: 0 0 30%; text-align: left; display: flex; align-items: start; padding-top:3%">
+                    <div>
+                        <div style="margin-bottom: 12.5%; font-size: 80%;">
+                            Temp:
+                        </div>
+                        <div id="temperature" style="font-size: 100%; font-weight: bold;">
+                            N/A
+                        </div>
+                    </div>
+                    <div style="position:absolute; top:0; right:0; font-size: 100%; margin-right: -20%;">
+                        🌡️
+                    </div>
+                </div>
+
+                <div style="flex: 0 0 9%;"></div>
+                <div style="flex: 0 0 2%; width: 100%; height: 100%; background-color: white;"></div>
+                <div style="flex: 0 0 9%;"></div>
+
+                <div style="position:relative; flex: 0 0 30%; text-align: left; display: flex; align-items: center; padding-top:3%">
+                    <div>
+                        <div style="margin-bottom: 12.5%; font-size: 80%;">
+                            % RH:
+                        </div>
+                        <div id="humidity" style="font-size: 100%; font-weight: bold;">
+                            N/A
+                        </div>
+                    </div>
+                    <div style="position:absolute; top:0; left:43%; font-size: 100%; margin-left: 25%">
+                        💧
+                    </div>
+                </div>
+                <div style="flex: 0 0 10%"></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
