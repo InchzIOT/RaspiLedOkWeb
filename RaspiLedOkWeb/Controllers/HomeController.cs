@@ -48,6 +48,7 @@ namespace RaspiLedOkWeb.Controllers
             Error = null,
             Success = true
         };
+        private static bool isLogin = true;
 
         //private static Dictionary<DeviceType<Dictionary<AirSensorsKey, string>>() keyValuesPairs;
         public HomeController(ILogger<HomeController> logger, ISyncService syncService, IApiConfigurationService apiConfigurationService)
@@ -61,12 +62,18 @@ namespace RaspiLedOkWeb.Controllers
         {
             try
             {
+
+                var loginRes = await _syncService.AutoLogin();
+                if (!loginRes.Success)
+                {
+                    isLogin = false;
+                }
+
                 var configRes = _apiConfigurationService.GetConfiguration();
                 if (!_apiConfigurationService.ValidateConfiguration(configRes))
                 {
                     return View("ErrorPage");
                 }
-
                 
                 ViewBag.Height = (configRes.Screen.Height <= 0 ? 400 : configRes.Screen.Height) + "px";
                 ViewBag.Width = (configRes.Screen.Width <= 0 ? 200 : configRes.Screen.Width) + "px";
@@ -271,11 +278,17 @@ namespace RaspiLedOkWeb.Controllers
             try
             {
                 bool success = true;
-
-                var loginRes = await _syncService.AutoLogin();
-                if (!loginRes.Success)
+                if(isLogin == false)
                 {
-                    return Json(new { success = true, message = "No air device had found", data = cacheAirAndWaterSensorModel });
+                    var loginRes = await _syncService.AutoLogin();
+                    if (loginRes.Success)
+                    {
+                        isLogin = true;
+                    }
+                    else
+                    {
+                        isLogin = false;
+                    }
                 }
 
                 var asset = GetAssets().FirstOrDefault();
