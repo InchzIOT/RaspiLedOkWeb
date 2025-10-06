@@ -1,10 +1,11 @@
-using System.Diagnostics;
-using System.Threading.Tasks;
 using Doggo.Data.Models;
 using Microsoft.AspNetCore.Mvc;
+using RaspiLedOkWeb.Filters;
 using RaspiLedOkWeb.Helpers;
 using RaspiLedOkWeb.Models;
 using RaspiLedOkWeb.Services;
+using System.Diagnostics;
+using System.Threading.Tasks;
 
 namespace RaspiLedOkWeb.Controllers
 {
@@ -58,6 +59,7 @@ namespace RaspiLedOkWeb.Controllers
             _apiConfigurationService = apiConfigurationService;
         }
 
+        [ApiKeyAuth]
         public async Task<IActionResult> Index()
         {
             try
@@ -88,6 +90,7 @@ namespace RaspiLedOkWeb.Controllers
             
         }
 
+        [ApiKeyAuth]
         public async Task<IActionResult> IndexDemo()
         {
             try
@@ -197,6 +200,7 @@ namespace RaspiLedOkWeb.Controllers
             }
         }
 
+        [ApiKeyAuth]
         public async Task<IActionResult> IndexV2()
         {
             try

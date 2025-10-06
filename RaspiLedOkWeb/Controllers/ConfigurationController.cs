@@ -1,9 +1,10 @@
-using System.Diagnostics;
-using System.Security.Cryptography;
 using Microsoft.AspNetCore.Mvc;
+using RaspiLedOkWeb.Filters;
 using RaspiLedOkWeb.Helpers;
 using RaspiLedOkWeb.Models;
 using RaspiLedOkWeb.Services;
+using System.Diagnostics;
+using System.Security.Cryptography;
 
 namespace RaspiLedOkWeb.Controllers
 {
@@ -23,6 +24,7 @@ namespace RaspiLedOkWeb.Controllers
             _syncService = syncService;
         }
 
+        [ApiKeyAuth]
         public IActionResult Index()
         {
             var configuration = _apiConfigurationService.GetConfiguration();

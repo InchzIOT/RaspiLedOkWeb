@@ -28,6 +28,37 @@
         // Chart.js gauge chart variable
         let gaugeChart = null;
 
+        // === LOCAL STORAGE CACHE HELPERS ===
+        function saveSensorDataToCache() {
+            try {
+                localStorage.setItem("cachedSensorData", JSON.stringify({
+                    data: sensorData,
+                    timestamp: new Date().toISOString()
+                }));
+                console.log("Sensor data saved to localStorage.");
+            } catch (err) {
+                console.warn("Failed to save sensor data:", err);
+            }
+        }
+
+        function loadSensorDataFromCache() {
+            try {
+                const cached = localStorage.getItem("cachedSensorData");
+                if (cached) {
+                    const parsed = JSON.parse(cached);
+                    if (parsed.data) {
+                        sensorData = parsed.data;
+                        console.log("Loaded sensor data from cache (timestamp: " + parsed.timestamp + ")");
+                        updateUI();
+                    }
+                }
+            } catch (err) {
+                console.warn("Failed to load cached sensor data:", err);
+            }
+        }
+
+
+
         // Function to create/update the Chart.js gauge
         function updateGaugeChart() {
             const canvas = document.getElementById('apiChart');
@@ -386,6 +417,7 @@
         }
 
         function updateAllSensorData() {
+            let isDataValid = true;
             console.log('=== FETCHING SENSOR DATA ===');
             console.log('Request URL:', window.location.origin + '/Home/GetAirAndWaterSensorValue');
 
@@ -393,7 +425,8 @@
             Object.keys(sensorData).forEach(function(key) {
                 sensorData[key].loading = true;
             });
-            updateUI();
+           
+            //updateUI();
 
             fetch('@Url.Action("GetAirAndWaterSensorValue")', {
                 method: 'GET',
@@ -531,7 +564,10 @@
                     }
                 }
 
+                // Save to localStorage after successful fetch
+                saveSensorDataToCache();
                 updateUI();
+
                 console.log('=== SENSOR DATA UPDATE COMPLETE ===');
             })
             .catch(function(error) {
@@ -554,7 +590,8 @@
                         sensorData[key].loading = false;
                     }
                 });
-
+                console.warn("Attempting to load cached data...");
+                loadSensorDataFromCache();
                 updateUI();
             });
         }
@@ -562,6 +599,9 @@
         // Initialize dashboard when page loads
         window.onload = function() {
             console.log('Dashboard initializing...');
+
+            // Load last known sensorData first (if any)
+            loadSensorDataFromCache();
 
             // Update date/time immediately
             updateDateTime();
