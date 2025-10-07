@@ -258,7 +258,7 @@ namespace RaspiLedOkWeb.Controllers
             try
             {
                 bool success = true;
-                var asset = GetAssets().FirstOrDefault();
+                var asset = GetAssets().Where(x=>x.IsEnabled).FirstOrDefault();
                 var device = GetDevicesByAsset(asset.Id.ToString()).FirstOrDefault(x => x.Name.ToLower().Contains(DeviceType.Air.ToString().ToLower()));
                 if (device != null)
                 {
@@ -295,10 +295,10 @@ namespace RaspiLedOkWeb.Controllers
                     }
                 }
 
-                var asset = GetAssets().FirstOrDefault();
+                var asset = GetAssets().Where(x=>x.IsEnabled).FirstOrDefault();
                 var airDevice = GetDevicesByAsset(asset.Id.ToString()).FirstOrDefault(x => x.Name.ToLower().Contains(DeviceType.Air.ToString().ToLower()));
                 var waterDevice = GetDevicesByAsset(asset.Id.ToString()).FirstOrDefault(x => x.Name.ToLower().Contains(DeviceType.Ph.ToString().ToLower()));
-                if (airDevice != null && waterDevice != null)
+                if (airDevice != null)
                 {
                     var res = await _syncService.GetAirAndWaterSensorLatestDataByDeviceIdAsync(int.Parse(airDevice.Id), int.Parse(waterDevice.Id));
                     cacheAirAndWaterSensorModel = res;
