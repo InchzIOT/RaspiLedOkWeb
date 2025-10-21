@@ -31,24 +31,7 @@ namespace RaspiLedOkWeb.Controllers
         private readonly ISyncService _syncService;
         private readonly IApiConfigurationService _apiConfigurationService;
         private static AirSensorModel cacheAirSensorModel;
-        private static PoleSensorModel cacheAirAndWaterSensorModel = new PoleSensorModel()
-        {
-            Temperature = "28.5",
-            MinTemp = "24.0",
-            MaxTemp = "32.0",
-            Humidity = "70",
-            Pm25 = "10",
-            Pm10 = "10",
-            O3 = "0.05",
-            Co = "0.01",
-            No2 = "0.03",
-            So2 = "0.02",
-            OverallAPI = "50",
-            pH = "6.7",
-            Message = "Using mock sensor data",
-            Error = null,
-            Success = true
-        };
+        private static PoleSensorModel cacheAirAndWaterSensorModel = new PoleSensorModel();
         private static bool isLogin = true;
 
         //private static Dictionary<DeviceType<Dictionary<AirSensorsKey, string>>() keyValuesPairs;
@@ -264,8 +247,11 @@ namespace RaspiLedOkWeb.Controllers
                 if (device != null)
                 {
                     var res = await _syncService.GetAirSensorLatestDataByDeviceIdAsync(int.Parse(device.Id));
-                    cacheAirSensorModel = res;
-                    return Json(new { success, data = res });
+                    if (res.Co != null && res.No2 != null && res.So2 != null && res.Humidity != null && res.Temperature != null)
+                    {
+                        cacheAirSensorModel = res;
+                    }
+                    return Json(new { success, data = cacheAirSensorModel });
                 }
                 else
                 {
@@ -302,7 +288,10 @@ namespace RaspiLedOkWeb.Controllers
                 if (airDevice != null)
                 {
                     var res = await _syncService.GetAirAndWaterSensorLatestDataByDeviceIdAsync(int.Parse(airDevice.Id), int.Parse(waterDevice.Id));
-                    cacheAirAndWaterSensorModel = res;
+                    if (res.pH != null && res.Co != null && res.No2 != null && res.So2 != null && res.Humidity != null && res.Temperature != null)
+                    {
+                        cacheAirAndWaterSensorModel = res;
+                    }
                     return Json(new { success, data = res });
                 }
                 else
