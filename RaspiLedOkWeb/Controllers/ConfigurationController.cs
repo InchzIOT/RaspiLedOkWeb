@@ -4,6 +4,7 @@ using RaspiLedOkWeb.Helpers;
 using RaspiLedOkWeb.Models;
 using RaspiLedOkWeb.Services;
 using System.Diagnostics;
+using System.Numerics;
 using System.Security.Cryptography;
 
 namespace RaspiLedOkWeb.Controllers
@@ -52,7 +53,7 @@ namespace RaspiLedOkWeb.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating API configuration");
-                ModelState.AddModelError("", "An error occurred while updating the configuration.");
+                TempData["ErrorMessage"] = $"An error occurred while updating the configuration: {ex.Message}";
                 return View("Index", configuration);
             }
         }
@@ -80,6 +81,7 @@ namespace RaspiLedOkWeb.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving API configuration");
+                TempData["ErrorMessage"] = $"Error retrieving API configuration: {ex.Message}";
                 return StatusCode(500, "Internal server error");
             }
         }
@@ -115,6 +117,7 @@ namespace RaspiLedOkWeb.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error testing API connection");
+                TempData["ErrorMessage"] = $"Error testing API connection: {ex.Message}";
                 return Json(new { success = false, message = "Error testing connection." });
             }
         }
@@ -188,6 +191,7 @@ namespace RaspiLedOkWeb.Controllers
                         catch (Exception ex)
                         {
                             _logger.LogError(ex, "Error fetching devices for asset {AssetName}", asset.Name);
+                            TempData["ErrorMessage"] = $"Error fetching devices for asset {asset.Name}: {ex.Message}";
                             configAsset.Devices = new List<Device>();
                         }
                         
@@ -218,6 +222,7 @@ namespace RaspiLedOkWeb.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error during asset sync");
+                TempData["ErrorMessage"] = $"Error during asset sync: {ex.Message}";
                 return Json(new { success = false, message = $"Error occurred during sync: {ex.Message}" });
             }
         }
@@ -233,6 +238,7 @@ namespace RaspiLedOkWeb.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving assets");
+                TempData["ErrorMessage"] = $"Error retrieving assets: {ex.Message}";
                 return Json(new { success = false, message = "Error retrieving assets" });
             }
         }
@@ -259,6 +265,7 @@ namespace RaspiLedOkWeb.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating asset enabled state");
+                TempData["ErrorMessage"] = $"Error updating asset enabled state: {ex.Message}";
                 return Json(new { success = false, message = "Error updating asset" });
             }
         }
@@ -291,6 +298,7 @@ namespace RaspiLedOkWeb.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating device enabled state");
+                TempData["ErrorMessage"] = $"Error updating device enabled state: {ex.Message}";
                 return Json(new { success = false, message = "Error updating device" });
             }
         }

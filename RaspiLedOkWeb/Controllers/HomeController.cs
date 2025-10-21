@@ -257,6 +257,7 @@ namespace RaspiLedOkWeb.Controllers
         {
             try
             {
+                await _syncService.AutoLogin();
                 bool success = true;
                 var asset = GetAssets().Where(x=>x.IsEnabled).FirstOrDefault();
                 var device = GetDevicesByAsset(asset.Id.ToString()).FirstOrDefault(x => x.Name.ToLower().Contains(DeviceType.Air.ToString().ToLower()));

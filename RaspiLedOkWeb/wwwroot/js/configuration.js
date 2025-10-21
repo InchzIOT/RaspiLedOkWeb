@@ -9,7 +9,7 @@ function testConnection() {
         return;
     }
     
-    fetch('/Configuration/TestConnection', {
+    fetch('Configuration/TestConnection', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -38,7 +38,7 @@ function syncAssets() {
     syncBtn.innerHTML = '<i class="bi bi-arrow-clockwise spin"></i> Syncing...';
     syncResult.innerHTML = '<div class="alert alert-info"><i class="bi bi-info-circle"></i> Syncing assets from API...</div>';
     
-    fetch('/Configuration/SyncAssets', {
+    fetch('Configuration/SyncAssets', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -69,7 +69,7 @@ function loadAssets() {
     const container = document.getElementById('assetsContainer');
     container.innerHTML = '<div class="text-center"><i class="bi bi-arrow-clockwise spin"></i> Loading assets...</div>';
     
-    fetch('/Configuration/GetAssets')
+    fetch('Configuration/GetAssets')
         .then(response => response.json())
         .then(data => {
             if (data.success && data.assets && data.assets.length > 0) {
@@ -153,7 +153,7 @@ function renderAssets(assets) {
 let currentAsset = null;
 
 function openAssetModal(assetId) {
-    fetch('/Configuration/GetAssets')
+    fetch('Configuration/GetAssets')
         .then(response => response.json())
         .then(data => {
             if (data.success && data.assets) {
@@ -256,7 +256,7 @@ function saveAssetChanges() {
     // Update asset enabled state
     if (assetEnabled !== currentAsset.isEnabled) {
         promises.push(
-            fetch('/Configuration/UpdateAssetEnabled', {
+            fetch('Configuration/UpdateAssetEnabled', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: `assetId=${encodeURIComponent(currentAsset.id)}&isEnabled=${assetEnabled}`
@@ -270,7 +270,7 @@ function saveAssetChanges() {
             const checkbox = document.getElementById(`modalDevice_${device.id}`);
             if (checkbox && checkbox.checked !== device.isEnabled) {
                 promises.push(
-                    fetch('/Configuration/UpdateDeviceEnabled', {
+                    fetch('Configuration/UpdateDeviceEnabled', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                         body: `assetId=${encodeURIComponent(currentAsset.id)}&deviceId=${encodeURIComponent(device.id)}&isEnabled=${checkbox.checked}`
