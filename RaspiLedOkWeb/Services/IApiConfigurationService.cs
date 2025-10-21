@@ -12,5 +12,6 @@ namespace RaspiLedOkWeb.Services
         bool ValidateConfiguration(ApiConfiguration configuration);
         List<Asset> GetAssets();
         Task UpdateAssetsAsync(ConfigurationAssets configurationAssets);
+        AppSettings GetAppSettings();
     }
 }

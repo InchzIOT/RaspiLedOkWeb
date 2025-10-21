@@ -125,6 +125,24 @@ namespace RaspiLedOkWeb.Services
         }
         #endregion
 
+        #region AppSettings
+        public AppSettings GetAppSettings()
+        {
+            try
+            {
+                var appSettingsSection = _configuration.GetSection("AppSettings");
+                var appSettings = appSettingsSection.Get<AppSettings>();
+                return appSettings ?? new AppSettings();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error reading app settingg from configuration");
+                return new AppSettings();
+            }
+        }
+
+        #endregion
+
         #region Helpers
         private async Task UpdateAppSettingsFileAsync(ApiConfiguration configuration)
         {

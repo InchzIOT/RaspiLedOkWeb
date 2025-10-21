@@ -48,7 +48,9 @@ namespace RaspiLedOkWeb.Controllers
                 
                 _logger.LogInformation("API configuration updated via web interface");
 
-                return RedirectToAction("Index", "Configuration", new { apiKey = "8C4DA3A7-249B-41EC-B537-9BF65583B546" });
+                var appSettings = _apiConfigurationService.GetAppSettings();
+
+                return RedirectToAction("Index", "Configuration", new { apiKey = appSettings.ApiKey });
             }
             catch (Exception ex)
             {

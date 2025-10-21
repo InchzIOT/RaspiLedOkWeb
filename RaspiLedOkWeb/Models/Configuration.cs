@@ -37,6 +37,11 @@ namespace RaspiLedOkWeb.Models
         public List<Asset> Assets { get; set; }
     }
 
+    public class AppSettings
+    {
+        public string ApiKey { get; set; }
+    }
+
     public class Asset
     {
         public string Name { get; set; }
