@@ -530,7 +530,7 @@
 
                 // Update PM10
                 if (data.data.pm10 !== null && data.data.pm10 !== undefined) {
-                    sensorData.pm10.value = parseFloat(data.data.pm10).toFixed(1);
+                    sensorData.pm10.value = parseFloat(data.data.pm10).toFixed(2);
                     sensorData.pm10.loading = false;
                     console.log('PM10 updated:', sensorData.pm10.value);
                 } else {
@@ -548,7 +548,7 @@
 
                 // Update PM2.5
                 if (data.data.pm25 !== null && data.data.pm25 !== undefined) {
-                    sensorData.pm25.value = parseFloat(data.data.pm25).toFixed(1);
+                    sensorData.pm25.value = parseFloat(data.data.pm25).toFixed(2);
                     sensorData.pm25.loading = false;
                     console.log('PM2.5 updated:', sensorData.pm25.value);
                 } else {
