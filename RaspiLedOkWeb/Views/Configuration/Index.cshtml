@@ -86,7 +86,7 @@
             syncBtn.innerHTML = '<i class="bi bi-arrow-clockwise spin"></i> Syncing...';
             syncResult.innerHTML = '<div class="alert alert-info"><i class="bi bi-info-circle"></i> Syncing assets from API...</div>';
 
-            fetch('Configuration/SyncAssets', {
+            fetch('/Configuration/SyncAssets', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -117,7 +117,7 @@
             const container = document.getElementById('assetsContainer');
             container.innerHTML = '<div class="text-center"><i class="bi bi-arrow-clockwise spin"></i> Loading assets...</div>';
 
-            fetch('Configuration/GetAssets')
+            fetch('/Configuration/GetAssets')
                 .then(response => response.json())
                 .then(data => {
                     if (data.success && data.assets && data.assets.length > 0) {
@@ -201,7 +201,7 @@
         let currentAsset = null;
 
         function openAssetModal(assetId) {
-            fetch('Configuration/GetAssets')
+            fetch('/GetAssets')
                 .then(response => response.json())
                 .then(data => {
                     if (data.success && data.assets) {
