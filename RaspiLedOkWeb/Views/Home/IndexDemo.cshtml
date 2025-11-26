@@ -384,7 +384,7 @@
 
         function updateAllSensorData() {
             console.log('=== FETCHING SENSOR DATA ===');
-            console.log('Request URL:', window.location.origin + '/Home/GetAirAndWaterSensorValue');
+            console.log('Request URL:', window.location.origin + '/Home/GetAirSensorValue');
 
             // Set loading state
             Object.keys(sensorData).forEach(function(key) {
@@ -392,7 +392,7 @@
             });
             updateUI();
 
-            fetch('@Url.Action("GetAirAndWaterSensorValue")', {
+            fetch('@Url.Action("GetAirSensorValue")', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
