@@ -57,7 +57,7 @@
                 return;
             }
 
-            fetch('Configuration/TestConnection', {
+            fetch('@Url.Action("TestConnection")', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -86,7 +86,7 @@
             syncBtn.innerHTML = '<i class="bi bi-arrow-clockwise spin"></i> Syncing...';
             syncResult.innerHTML = '<div class="alert alert-info"><i class="bi bi-info-circle"></i> Syncing assets from API...</div>';
 
-            fetch('/Configuration/SyncAssets', {
+            fetch('@Url.Action("SyncAssets")', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -116,8 +116,8 @@
         function loadAssets() {
             const container = document.getElementById('assetsContainer');
             container.innerHTML = '<div class="text-center"><i class="bi bi-arrow-clockwise spin"></i> Loading assets...</div>';
-
-            fetch('/Configuration/GetAssets')
+            
+            fetch('@Url.Action("GetAssets")')
                 .then(response => response.json())
                 .then(data => {
                     if (data.success && data.assets && data.assets.length > 0) {
@@ -201,7 +201,7 @@
         let currentAsset = null;
 
         function openAssetModal(assetId) {
-            fetch('/GetAssets')
+            fetch('@Url.Action("GetAssets")')
                 .then(response => response.json())
                 .then(data => {
                     if (data.success && data.assets) {
@@ -304,7 +304,8 @@
             // Update asset enabled state
             if (assetEnabled !== currentAsset.isEnabled) {
                 promises.push(
-                    fetch('Configuration/UpdateAssetEnabled', {
+                    fetch('@Url.Action("UpdateAssetEnabled")'
+                    , {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                         body: `assetId=${encodeURIComponent(currentAsset.id)}&isEnabled=${assetEnabled}`

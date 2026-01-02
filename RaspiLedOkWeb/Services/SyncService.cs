@@ -34,8 +34,8 @@ namespace RaspiLedOkWeb.Services
             var currentApiUrl = config.ApiUrl.TrimEnd('/');
             
             // Check if RestClient needs to be reinitialized due to URL change
-            if (restClient == null || _lastApiUrl != currentApiUrl)
-            {
+            //if (restClient == null || _lastApiUrl != currentApiUrl)
+            //{
                 // Dispose old client if it exists
                 restClient?.Dispose();
                 
@@ -63,7 +63,7 @@ namespace RaspiLedOkWeb.Services
                 {
                     restClient.AddDefaultHeader("Authorization", $"Bearer {_bearerToken}");
                 }
-            }
+            //}
         }
 
         private void SetBearerToken(string token)
