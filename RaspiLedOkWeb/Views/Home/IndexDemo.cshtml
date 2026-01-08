@@ -220,13 +220,13 @@
 
             // Format date: "15 Aug 2025 / Friday"
             const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thrs', 'Fri', 'Sat'];
-            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                              'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const monthNames = ['01', '02', '03', '04', '05', '06',
+                              '07', '08', '09', '10', '11', '12'];
 
             const dayName = dayNames[now.getDay()];
             const day = now.getDate().toString().padStart(2, '0');
-            // const month = monthNames[now.getMonth()];
-            const month = now.getMonth();
+            const month = monthNames[now.getMonth()];
+            // const month = now.getMonth();
             const year = now.getFullYear();
 
             const dateString = `${day}/${month}/${year}`;
