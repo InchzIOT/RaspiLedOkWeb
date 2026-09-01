@@ -143,6 +143,24 @@ namespace RaspiLedOkWeb.Services
 
         #endregion
 
+        #region Air Quality Configuration
+        public List<AirQualityBand> GetAirQualityBands()
+        {
+            try
+            {
+                var bandsSection = _configuration.GetSection("AirQuality:Bands");
+                var bands = bandsSection.Get<List<AirQualityBand>>();
+                return (bands != null && bands.Count > 0) ? bands : AirQualityBand.Defaults;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error reading air quality bands from configuration");
+                return AirQualityBand.Defaults;
+            }
+        }
+
+        #endregion
+
         #region Helpers
         private async Task UpdateAppSettingsFileAsync(ApiConfiguration configuration)
         {

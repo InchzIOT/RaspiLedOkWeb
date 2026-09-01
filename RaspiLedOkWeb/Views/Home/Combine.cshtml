@@ -28,6 +28,10 @@
         // Chart.js gauge chart variable
         let gaugeChart = null;
 
+        // Air quality bands (thresholds/status/color/message), loaded from appsettings.json via the
+        // server; falls back server-side to the standard Malaysia DOE defaults if not configured.
+        const airQualityBands = @Html.Raw(ViewBag.AirQualityBandsJson ?? "[]");
+
         // Function to create/update the Chart.js gauge
         function updateGaugeChart() {
             const canvas = document.getElementById('apiChart');
@@ -37,17 +41,9 @@
 
             // Get current API value - if null/loading, show default value
             const apiValue = sensorData.api.value ? parseFloat(sensorData.api.value) : 0;
-            const maxValue = 500;
 
             // Determine color based on API value according to guidelines
-            let needleColor = '#ffffff'; // Default white for no data
-            if (apiValue > 0) {
-                if (apiValue <= 50) needleColor = '#00BFFF';      // Good (Blue)
-                else if (apiValue <= 100) needleColor = '#32CD32'; // Moderate (Green)
-                else if (apiValue <= 200) needleColor = '#FFFF00'; // Unhealthy (Yellow)
-                else if (apiValue <= 300) needleColor = '#FF8C00'; // Very Unhealthy (Orange)
-                else needleColor = '#FF0000';                      // Hazardous (Red)
-            }
+            let needleColor = apiValue > 0 ? getAPIStatusColor(apiValue) : '#ffffff'; // Default white for no data
 
             // Destroy existing chart if it exists
             if (gaugeChart) {
@@ -61,11 +57,11 @@
                     datasets: [{
                         data: [100, 100, 100, 100, 100], // Equal segments for the gauge ranges
                         backgroundColor: [
-                            '#00BFFF', // Blue (0-100) Good
-                            '#32CD32', // Green (100-200) Moderate
-                            '#FFFF00', // Yellow (200-300) Unhealthy
-                            '#FF8C00', // Orange (300-400) Very Unhealthy
-                            '#FF0000', // Red (400-500) Hazardous
+                            '#00BFFF', // Blue (0-50) Good
+                            '#32CD32', // Green (50-100) Moderate
+                            '#FFFF00', // Yellow (100-200) Unhealthy
+                            '#FF8C00', // Orange (200-300) Very Unhealthy
+                            '#FF0000', // Red (300-500) Hazardous
                         ],
                         borderWidth: 2,
                         borderColor: '#262f40'
@@ -108,7 +104,7 @@
                         console.log('Current API Value:', currentApiValue);
 
                         // Draw scale labels - FIXED POSITIONING AND VISIBILITY
-                        const labels = [0, 50, 100, 200, 300, 400];
+                        const labels = [0, 50, 100, 200, 300, 500];
                         // FIXED: Calculate width and height from chartArea bounds
                         const chartWidth = chartArea.right - chartArea.left;
                         const chartHeight = chartArea.bottom - chartArea.top;
@@ -127,8 +123,8 @@
                         ctx.textBaseline = 'middle';
 
                         labels.forEach(function(label, index) {
-                            // Calculate angle for each label (spread across 180 degrees from left to right)
-                            // const angle = Math.PI + (label/400) * Math.PI;
+                            // Tick labels are spaced evenly along the arc (not proportional to value) —
+                            // the needle and color bands use the actual proportional value separately.
                             const angle = Math.PI + (index / (labels.length - 1)) * Math.PI;
                             const x = centerX + Math.cos(angle) * labelRadius;
                             const y = centerY + Math.sin(angle) * labelRadius;
@@ -142,29 +138,26 @@
 
                         // Only draw needle if we have valid data
                         if (currentApiValue >= 0 && !sensorData.api.loading) {
-                            let tempApiValue = 0
-                            if(currentApiValue >= 100){
-                                tempApiValue = currentApiValue + 100
+                            // Calculate needle angle by interpolating against the same evenly-spaced
+                            // label breakpoints used to draw the scale ticks and color bands above, so
+                            // the needle always lines up with the correct band regardless of value.
+                            const clampedApiValue = Math.max(labels[0], Math.min(currentApiValue, labels[labels.length - 1]));
+                            let segmentIndex = 0;
+                            for (let i = 0; i < labels.length - 1; i++) {
+                                if (clampedApiValue <= labels[i + 1]) {
+                                    segmentIndex = i;
+                                    break;
+                                }
                             }
-                            else
-                            {
-                                tempApiValue = currentApiValue * 2
-                            }
-
-
-                            // Calculate needle angle (180° spread for 0-500 range)
-                            const needleAngle = Math.PI + (Math.min(tempApiValue, maxValue) / maxValue) * Math.PI;
+                            const segmentStart = labels[segmentIndex];
+                            const segmentEnd = labels[segmentIndex + 1];
+                            const segmentFraction = segmentEnd === segmentStart ? 0 : (clampedApiValue - segmentStart) / (segmentEnd - segmentStart);
+                            const fractionalIndex = segmentIndex + segmentFraction;
+                            const needleAngle = Math.PI + (fractionalIndex / (labels.length - 1)) * Math.PI;
                             const needleLength = gaugeRadius - 10; // FIXED: Use calculated gaugeRadius
 
                             // Determine needle color based on current value
-                            let currentNeedleColor = '#ffffff';
-                            if (currentApiValue > 0) {
-                                if (currentApiValue <= 50) currentNeedleColor = '#00BFFF';
-                                else if (currentApiValue <= 100) currentNeedleColor = '#32CD32';
-                                else if (currentApiValue <= 200) currentNeedleColor = '#FFFF00';
-                                else if (currentApiValue <= 300) currentNeedleColor = '#FF8C00';
-                                else currentNeedleColor = '#FF0000';
-                            }
+                            let currentNeedleColor = currentApiValue > 0 ? getAPIStatusColor(currentApiValue) : '#ffffff';
 
                             // Calculate needle end position
                             const needleEndX = centerX + Math.cos(needleAngle) * needleLength;
@@ -242,34 +235,31 @@
             console.log('DateTime updated:', dateString, timeString);
         }
 
-        function getAPIStatus(value) {
+        // Look up the configured band (status/color/message) for a given API value.
+        // Bands are ordered ascending by Max; the last band's Max is null (no upper bound).
+        function getAirQualityBand(value) {
             const apiValue = parseFloat(value) || 0;
-            if (apiValue <= 50) return 'Good';
-            else if (apiValue <= 100) return 'Moderate';
-            else if (apiValue <= 200) return 'Unhealthy';
-            else if (apiValue <= 300) return 'Very Unhealthy';
-            else return 'Hazardous';
+            for (let i = 0; i < airQualityBands.length; i++) {
+                const band = airQualityBands[i];
+                if (band.max === null || band.max === undefined || apiValue <= band.max) {
+                    return band;
+                }
+            }
+            return airQualityBands[airQualityBands.length - 1];
+        }
+
+        function getAPIStatus(value) {
+            return getAirQualityBand(value).status;
         }
 
         // Function to get API status color
         function getAPIStatusColor(value) {
-            const apiValue = parseFloat(value) || 0;
-            if (apiValue <= 50) return '#00BFFF';
-            else if (apiValue <= 100) return '#32CD32';
-            else if (apiValue <= 200) return '#FFFF00';
-            else if (apiValue <= 300) return '#FF8C00';
-            else return '#FF0000';
+            return getAirQualityBand(value).color;
         }
 
-        // Function to get API status color
+        // Function to get the display warning message for the current API value
         function getNewsMessage(value) {
-            const apiValue = parseFloat(value) || 0;
-            if(apiValue <= 50) return "Air quality is <span style='font-weight:bold' id='newsApi'>Good</span>. Please enjoy your outdoor activities!";
-            if (apiValue <= 100) return "Air quality is <span style='font-weight:bold' id='newsApi'>Moderate</span>. Safe for most, but children & elderly should limit long outdoor exposure.";
-            else if (apiValue <= 200) return "Limit outdoor exposure & wear a protective mask, as the air is now unhealthy, especially for sensitive groups";
-            else if (apiValue <= 300) return "Everyone should now avoid outdoor exertion & wear an N95 mask if leaving the indoors is necessary.";
-            else if (apiValue <= 400) return "Remain indoors to avoid serious health risks from hazardous air; an N95 mask is critical for any essential exposure.";
-            else return "The weather is looking perfect today. It's a wonderful time to head out doors, get active & enjoy some fresh air. 15";
+            return getAirQualityBand(value).message;
         }
 
         // Function to update UI elements with current sensor data

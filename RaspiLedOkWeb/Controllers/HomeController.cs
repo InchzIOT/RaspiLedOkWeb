@@ -5,6 +5,7 @@ using RaspiLedOkWeb.Helpers;
 using RaspiLedOkWeb.Models;
 using RaspiLedOkWeb.Services;
 using System.Diagnostics;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace RaspiLedOkWeb.Controllers
@@ -33,6 +34,10 @@ namespace RaspiLedOkWeb.Controllers
         private static AirSensorModel cacheAirSensorModel;
         private static PoleSensorModel cacheAirAndWaterSensorModel = new PoleSensorModel();
         private static bool isLogin = true;
+        private static readonly JsonSerializerOptions AirQualityBandsJsonOptions = new()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
 
         //private static Dictionary<DeviceType<Dictionary<AirSensorsKey, string>>() keyValuesPairs;
         public HomeController(ILogger<HomeController> logger, ISyncService syncService, IApiConfigurationService apiConfigurationService)
@@ -62,7 +67,8 @@ namespace RaspiLedOkWeb.Controllers
                 
                 ViewBag.Height = (configRes.Screen.Height <= 0 ? 400 : configRes.Screen.Height) + "px";
                 ViewBag.Width = (configRes.Screen.Width <= 0 ? 200 : configRes.Screen.Width) + "px";
-                
+                ViewBag.AirQualityBandsJson = JsonSerializer.Serialize(_apiConfigurationService.GetAirQualityBands(), AirQualityBandsJsonOptions);
+
                 return View();
             }
             catch (Exception ex)
@@ -70,7 +76,7 @@ namespace RaspiLedOkWeb.Controllers
                 _logger.LogError(ex, "Error in Home/Index");
                 return View("ErrorPage");
             }
-            
+
         }
 
         [ApiKeyAuth]
@@ -93,6 +99,7 @@ namespace RaspiLedOkWeb.Controllers
                 ViewBag.Height = (configRes.Screen.Height <= 0 ? 240 : configRes.Screen.Height) + "px";
                 ViewBag.Width = (configRes.Screen.Width <= 0 ? 120 : configRes.Screen.Width) + "px";
                 ViewBag.Width = "120px";
+                ViewBag.AirQualityBandsJson = JsonSerializer.Serialize(_apiConfigurationService.GetAirQualityBands(), AirQualityBandsJsonOptions);
 
                 return View();
             }
@@ -148,6 +155,7 @@ namespace RaspiLedOkWeb.Controllers
                 }
                 ViewBag.Height = configRes.Screen.Height + "px";
                 ViewBag.Height = configRes.Screen.Width + "px";
+                ViewBag.AirQualityBandsJson = JsonSerializer.Serialize(_apiConfigurationService.GetAirQualityBands(), AirQualityBandsJsonOptions);
                 return View();
             }
             catch (Exception ex)
