@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "raspi-led-web",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "RaspiLedOkWeb/RaspiLedOkWeb.csproj"],
+      "port": 5000
+    }
+  ]
+}

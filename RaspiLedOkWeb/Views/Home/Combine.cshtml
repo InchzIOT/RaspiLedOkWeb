@@ -364,6 +364,12 @@
                 document.getElementById('timeDisplay').textContent = timeStr;
             }
 
+            // Redraw the gauge so the needle reflects the latest value — Chart.js does not
+            // automatically re-run the afterDraw plugin when external data changes on its own.
+            if (gaugeChart) {
+                gaugeChart.update();
+            }
+
             console.log('UI updated with latest sensor data');
         }
 
@@ -541,6 +547,85 @@
             console.log('Manual data refresh triggered');
             updateAllSensorData();
         }
+
+        // === GAUGE QC TEST ===
+        // Sweeps the displayed API value from 0 up to 500 and back down to 0, so the needle
+        // position can be checked visually against the scale/color bands. Live sensor polling
+        // is paused while the sweep runs and resumed automatically when it finishes or is stopped.
+        // Run from the browser console: gaugeQCTest.start()  /  gaugeQCTest.stop()
+        const gaugeQCTest = (function () {
+            let timerId = null;
+
+            function setApiValue(value) {
+                sensorData.api.value = String(Math.round(value));
+                sensorData.api.loading = false;
+                updateUI();
+            }
+
+            function resumeLivePolling() {
+                if (!window.sensorDataInterval) {
+                    window.sensorDataInterval = setInterval(function () {
+                        console.log('Scheduled data fetch triggered');
+                        updateAllSensorData();
+                    }, 60 * 1000);
+                }
+            }
+
+            function start(options) {
+                const opts = Object.assign({ stepMs: 150, stepSize: 5, max: 500 }, options);
+                stop();
+
+                if (!gaugeChart) {
+                    console.warn('gaugeQCTest: gauge chart is not created yet.');
+                    return;
+                }
+
+                // Pause live sensor polling so it doesn't overwrite the test values mid-sweep
+                if (window.sensorDataInterval) {
+                    clearInterval(window.sensorDataInterval);
+                    window.sensorDataInterval = null;
+                }
+
+                let value = 0;
+                let phase = 'up'; // 'up' -> 0 to max, then 'down' -> max to 0
+                setApiValue(value);
+                console.log(`Gauge QC test started: sweeping 0 -> ${opts.max} -> 0`);
+
+                timerId = setInterval(function () {
+                    if (phase === 'up') {
+                        value += opts.stepSize;
+                        if (value >= opts.max) {
+                            value = opts.max;
+                            phase = 'down';
+                        }
+                    } else {
+                        value -= opts.stepSize;
+                        if (value <= 0) {
+                            value = 0;
+                            phase = 'done';
+                        }
+                    }
+                    setApiValue(value);
+
+                    if (phase === 'done') {
+                        console.log('Gauge QC test complete: swept 0 -> ' + opts.max + ' -> 0');
+                        stop();
+                    }
+                }, opts.stepMs);
+            }
+
+            function stop() {
+                if (timerId) {
+                    clearInterval(timerId);
+                    timerId = null;
+                    resumeLivePolling();
+                    console.log('Gauge QC test stopped; live sensor polling resumed.');
+                }
+            }
+
+            return { start, stop };
+        })();
+        window.gaugeQCTest = gaugeQCTest;
 
         var clickCount = 0;
         function redirectToConfiguration(){
