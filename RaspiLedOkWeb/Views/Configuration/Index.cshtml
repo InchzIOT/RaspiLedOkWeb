@@ -31,8 +31,20 @@
     
     <div class="col-lg-4">
         @await Html.PartialAsync("_ConfigurationStatus", Model)
-        
+
         @await Html.PartialAsync("_AssetSyncCard")
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        @await Html.PartialAsync("_AirDataSourceForm", (AirDataSourceConfiguration)ViewBag.AirDataSourceConfiguration)
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        @await Html.PartialAsync("_AirQualityBandsForm", (List<AirQualityBand>)ViewBag.AirQualityBands)
     </div>
 </div>
 
@@ -251,7 +263,7 @@
                                         <i class="bi bi-cpu text-muted me-2"></i>
                                         <span class="fw-semibold">${device.name}</span>
                                     </div>
-                                    <small class="text-muted">ID: ${device.id} • Interval: ${device.interval}ms</small>
+                                    <small class="text-muted">ID: ${device.id} ï¿½ Interval: ${device.interval}ms</small>
                                 </div>
                                 <div class="form-check form-switch">
                                     <input class="form-check-input" type="checkbox"

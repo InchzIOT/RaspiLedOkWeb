@@ -29,6 +29,8 @@ namespace RaspiLedOkWeb.Controllers
         public IActionResult Index()
         {
             var configuration = _apiConfigurationService.GetConfiguration();
+            ViewBag.AirDataSourceConfiguration = _apiConfigurationService.GetAirDataSourceConfiguration();
+            ViewBag.AirQualityBands = _apiConfigurationService.GetAirQualityBands();
             return View(configuration);
         }
 
@@ -57,6 +59,58 @@ namespace RaspiLedOkWeb.Controllers
                 _logger.LogError(ex, "Error updating API configuration");
                 TempData["ErrorMessage"] = $"An error occurred while updating the configuration: {ex.Message}";
                 return View("Index", configuration);
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> UpdateAirDataSource(AirDataSourceConfiguration configuration)
+        {
+            try
+            {
+                await _apiConfigurationService.UpdateAirDataSourceConfigurationAsync(configuration);
+                TempData["SuccessMessage"] = "Air data source configuration updated successfully!";
+
+                _logger.LogInformation("Air data source configuration updated via web interface");
+
+                var appSettings = _apiConfigurationService.GetAppSettings();
+                return RedirectToAction("Index", "Configuration", new { apiKey = appSettings.ApiKey });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating air data source configuration");
+                TempData["ErrorMessage"] = $"An error occurred while updating the air data source configuration: {ex.Message}";
+                var appSettings = _apiConfigurationService.GetAppSettings();
+                return RedirectToAction("Index", "Configuration", new { apiKey = appSettings.ApiKey });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> UpdateAirQualityBands([FromBody] List<AirQualityBand> bands)
+        {
+            try
+            {
+                if (bands == null || bands.Count == 0)
+                {
+                    return Json(new { success = false, message = "At least one band is required." });
+                }
+
+                foreach (var band in bands)
+                {
+                    if (string.IsNullOrWhiteSpace(band.Status) || string.IsNullOrWhiteSpace(band.Color) || string.IsNullOrWhiteSpace(band.Message))
+                    {
+                        return Json(new { success = false, message = "Every band needs a status, color, and message." });
+                    }
+                }
+
+                await _apiConfigurationService.UpdateAirQualityBandsAsync(bands);
+                _logger.LogInformation("Air quality bands updated via web interface");
+
+                return Json(new { success = true, message = "Air quality bands updated successfully!" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating air quality bands");
+                return Json(new { success = false, message = $"Error updating air quality bands: {ex.Message}" });
             }
         }
 

@@ -31,6 +31,7 @@ namespace RaspiLedOkWeb.Controllers
         private readonly ILogger<HomeController> _logger;
         private readonly ISyncService _syncService;
         private readonly IApiConfigurationService _apiConfigurationService;
+        private readonly IAqicnService _aqicnService;
         private static AirSensorModel cacheAirSensorModel;
         private static PoleSensorModel cacheAirAndWaterSensorModel = new PoleSensorModel();
         private static bool isLogin = true;
@@ -40,11 +41,12 @@ namespace RaspiLedOkWeb.Controllers
         };
 
         //private static Dictionary<DeviceType<Dictionary<AirSensorsKey, string>>() keyValuesPairs;
-        public HomeController(ILogger<HomeController> logger, ISyncService syncService, IApiConfigurationService apiConfigurationService)
+        public HomeController(ILogger<HomeController> logger, ISyncService syncService, IApiConfigurationService apiConfigurationService, IAqicnService aqicnService)
         {
             _logger = logger;
             _syncService = syncService;
             _apiConfigurationService = apiConfigurationService;
+            _aqicnService = aqicnService;
         }
 
         [ApiKeyAuth]
@@ -248,6 +250,18 @@ namespace RaspiLedOkWeb.Controllers
         {
             try
             {
+                var dataSourceConfig = _apiConfigurationService.GetAirDataSourceConfiguration();
+                if (dataSourceConfig.Provider == AirDataProvider.Aqicn)
+                {
+                    var aqicnRes = await _aqicnService.GetLatestDataAsync(dataSourceConfig.Aqicn.City, dataSourceConfig.Aqicn.ApiToken);
+                    if (aqicnRes.Success)
+                    {
+                        cacheAirSensorModel = aqicnRes;
+                        return Json(new { success = true, data = cacheAirSensorModel });
+                    }
+                    return Json(new { success = true, message = aqicnRes.Message ?? "Failed to fetch AQICN data", data = cacheAirSensorModel });
+                }
+
                 await _syncService.AutoLogin();
                 bool success = true;
                 var asset = GetAssets().Where(x=>x.IsEnabled).FirstOrDefault();

@@ -1,0 +1,68 @@
+@using Microsoft.AspNetCore.Mvc.Rendering
+@model RaspiLedOkWeb.Models.AirDataSourceConfiguration
+
+<!-- Air Data Source Configuration Card -->
+<div class="card shadow-colored mb-5 bounce-in premium-glow">
+    <div class="card-header">
+        <div class="d-flex align-items-center">
+            <div class="p-2 rounded-circle me-3" style="background: var(--primary-gradient-light);">
+                <i class="bi bi-cloud-sun text-primary fs-4"></i>
+            </div>
+            <div>
+                <h5 class="mb-0 fw-bold">Air Data Source</h5>
+                <small class="text-muted">Choose where live air quality readings come from</small>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <form asp-action="UpdateAirDataSource" method="post" class="row g-4">
+            <div class="col-12">
+                <label asp-for="Provider" class="form-label">
+                    <i class="bi bi-hdd-network"></i>Data Provider
+                </label>
+                <select asp-for="Provider" class="form-select" id="airDataProviderSelect"
+                        asp-items="Html.GetEnumSelectList<AirDataProvider>()"
+                        onchange="toggleAqicnFields()">
+                </select>
+                <div class="form-text">ThingsBoard uses your configured API/assets above. AQICN pulls public air quality data for a chosen city from aqicn.org.</div>
+            </div>
+
+            <div class="col-12" id="aqicnFieldsGroup">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <label asp-for="Aqicn.City" class="form-label">
+                            <i class="bi bi-geo-alt"></i>City
+                        </label>
+                        <input asp-for="Aqicn.City" type="text" class="form-control" placeholder="e.g. shanghai, beijing, or 'here' for auto-detect">
+                        <div class="form-text">City slug as used in AQICN feed URLs (aqicn.org/city/&lt;city&gt;), or "here" to auto-detect by server IP.</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Aqicn.ApiToken" class="form-label">
+                            <i class="bi bi-key"></i>API Token
+                        </label>
+                        <input asp-for="Aqicn.ApiToken" type="text" class="form-control" placeholder="Token from aqicn.org/data-platform">
+                        <div class="form-text">Personal token issued by the AQICN data platform.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 pt-3">
+                <div class="d-flex gap-3 flex-wrap">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-check-circle me-2"></i>Save Air Data Source
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function toggleAqicnFields() {
+        const provider = document.getElementById('airDataProviderSelect').value;
+        const group = document.getElementById('aqicnFieldsGroup');
+        group.style.display = (provider === '@((int)AirDataProvider.Aqicn)') ? '' : 'none';
+    }
+    document.addEventListener('DOMContentLoaded', toggleAqicnFields);
+</script>

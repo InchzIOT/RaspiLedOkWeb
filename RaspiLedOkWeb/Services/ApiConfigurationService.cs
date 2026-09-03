@@ -159,6 +159,37 @@ namespace RaspiLedOkWeb.Services
             }
         }
 
+        public async Task UpdateAirQualityBandsAsync(List<AirQualityBand> bands)
+        {
+            await UpdateSectionInSettingsFileAsync("AirQuality", new { Bands = bands });
+            _logger.LogInformation("Air quality bands updated. Count: {Count}", bands.Count);
+        }
+
+        #endregion
+
+        #region Air Data Source Configuration
+        public AirDataSourceConfiguration GetAirDataSourceConfiguration()
+        {
+            try
+            {
+                var section = _configuration.GetSection(AirDataSourceConfiguration.SectionName);
+                var config = section.Get<AirDataSourceConfiguration>();
+                return config ?? new AirDataSourceConfiguration();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error reading air data source configuration");
+                return new AirDataSourceConfiguration();
+            }
+        }
+
+        public async Task UpdateAirDataSourceConfigurationAsync(AirDataSourceConfiguration configuration)
+        {
+            await UpdateSectionInSettingsFileAsync(AirDataSourceConfiguration.SectionName, configuration);
+            _logger.LogInformation("Air data source configuration updated: Provider={Provider}, City={City}",
+                configuration.Provider, configuration.Aqicn?.City);
+        }
+
         #endregion
 
         #region Helpers

@@ -1,0 +1,172 @@
+@model List<RaspiLedOkWeb.Models.AirQualityBand>
+
+<!-- Air Quality Bands Configuration Card -->
+<div class="card shadow-colored mb-5 bounce-in premium-glow">
+    <div class="card-header">
+        <div class="d-flex align-items-center">
+            <div class="p-2 rounded-circle me-3" style="background: var(--primary-gradient-light);">
+                <i class="bi bi-speedometer2 text-primary fs-4"></i>
+            </div>
+            <div>
+                <h5 class="mb-0 fw-bold">Air Quality Bands & Messages</h5>
+                <small class="text-muted">Thresholds, status labels, colors, and warning messages for the API gauge</small>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-info d-flex align-items-start gap-2 mb-4">
+            <i class="bi bi-info-circle mt-1"></i>
+            <div>
+                Rows are checked top to bottom; the first row whose <strong>Max</strong> is greater than or equal
+                to the current API value is used. Leave <strong>Max</strong> blank on the last row so it catches
+                every value above the row before it (no upper bound).
+            </div>
+        </div>
+
+        <div id="bandsResult"></div>
+
+        <div class="table-responsive">
+            <table class="table align-middle" id="bandsTable">
+                <thead>
+                    <tr>
+                        <th style="width: 12%;">Max</th>
+                        <th style="width: 18%;">Status</th>
+                        <th style="width: 14%;">Color</th>
+                        <th>Message</th>
+                        <th style="width: 5%;"></th>
+                    </tr>
+                </thead>
+                <tbody id="bandsTableBody">
+                    @for (var i = 0; i < Model.Count; i++)
+                    {
+                        var band = Model[i];
+                        <tr class="band-row">
+                            <td>
+                                <input type="number" class="form-control band-max" value="@band.Max" placeholder="none">
+                            </td>
+                            <td>
+                                <input type="text" class="form-control band-status" value="@band.Status" placeholder="e.g. Hazardous">
+                            </td>
+                            <td>
+                                <div class="d-flex gap-2 align-items-center">
+                                    <input type="color" class="form-control form-control-color band-color-picker" value="@band.Color" title="Pick a color">
+                                    <input type="text" class="form-control band-color" value="@band.Color" placeholder="#FF0000">
+                                </div>
+                            </td>
+                            <td>
+                                <textarea class="form-control band-message" rows="2" placeholder="Warning message shown to viewers">@band.Message</textarea>
+                            </td>
+                            <td class="text-center">
+                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeBandRow(this)" title="Remove band">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="d-flex gap-3 flex-wrap pt-2">
+            <button type="button" class="btn btn-outline-secondary" onclick="addBandRow()">
+                <i class="bi bi-plus-circle me-2"></i>Add Band
+            </button>
+            <button type="button" class="btn btn-primary btn-lg" id="saveBandsBtn" onclick="saveAirQualityBands()">
+                <i class="bi bi-check-circle me-2"></i>Save Bands
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function addBandRow() {
+        const tbody = document.getElementById('bandsTableBody');
+        const row = document.createElement('tr');
+        row.className = 'band-row';
+        row.innerHTML = `
+            <td><input type="number" class="form-control band-max" placeholder="none"></td>
+            <td><input type="text" class="form-control band-status" placeholder="e.g. Hazardous"></td>
+            <td>
+                <div class="d-flex gap-2 align-items-center">
+                    <input type="color" class="form-control form-control-color band-color-picker" value="#FF0000" title="Pick a color">
+                    <input type="text" class="form-control band-color" placeholder="#FF0000">
+                </div>
+            </td>
+            <td><textarea class="form-control band-message" rows="2" placeholder="Warning message shown to viewers"></textarea></td>
+            <td class="text-center">
+                <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeBandRow(this)" title="Remove band">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </td>`;
+        tbody.appendChild(row);
+        wireColorPicker(row);
+    }
+
+    function removeBandRow(button) {
+        const row = button.closest('tr');
+        if (document.querySelectorAll('#bandsTableBody .band-row').length <= 1) {
+            showAirQualityBandsResult('At least one band is required.', 'warning');
+            return;
+        }
+        row.remove();
+    }
+
+    function wireColorPicker(row) {
+        const picker = row.querySelector('.band-color-picker');
+        const text = row.querySelector('.band-color');
+        picker.addEventListener('input', () => { text.value = picker.value.toUpperCase(); });
+        text.addEventListener('input', () => {
+            if (/^#[0-9A-Fa-f]{6}$/.test(text.value)) {
+                picker.value = text.value;
+            }
+        });
+    }
+
+    function collectBands() {
+        const rows = document.querySelectorAll('#bandsTableBody .band-row');
+        const bands = [];
+        rows.forEach(row => {
+            const maxRaw = row.querySelector('.band-max').value.trim();
+            bands.push({
+                max: maxRaw === '' ? null : parseInt(maxRaw, 10),
+                status: row.querySelector('.band-status').value.trim(),
+                color: row.querySelector('.band-color').value.trim(),
+                message: row.querySelector('.band-message').value.trim()
+            });
+        });
+        return bands;
+    }
+
+    function showAirQualityBandsResult(message, type) {
+        const container = document.getElementById('bandsResult');
+        container.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+    }
+
+    function saveAirQualityBands() {
+        const bands = collectBands();
+        const saveBtn = document.getElementById('saveBandsBtn');
+        const originalText = saveBtn.innerHTML;
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="bi bi-arrow-clockwise spin me-2"></i>Saving...';
+
+        fetch('@Url.Action("UpdateAirQualityBands", "Configuration")', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(bands)
+        })
+            .then(response => response.json())
+            .then(data => {
+                showAirQualityBandsResult(data.message, data.success ? 'success' : 'danger');
+            })
+            .catch(error => {
+                console.error('Error saving air quality bands:', error);
+                showAirQualityBandsResult('Error saving air quality bands.', 'danger');
+            })
+            .finally(() => {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = originalText;
+            });
+    }
+
+    document.querySelectorAll('#bandsTableBody .band-row').forEach(wireColorPicker);
+</script>

@@ -14,5 +14,8 @@ namespace RaspiLedOkWeb.Services
         Task UpdateAssetsAsync(ConfigurationAssets configurationAssets);
         AppSettings GetAppSettings();
         List<AirQualityBand> GetAirQualityBands();
+        Task UpdateAirQualityBandsAsync(List<AirQualityBand> bands);
+        AirDataSourceConfiguration GetAirDataSourceConfiguration();
+        Task UpdateAirDataSourceConfigurationAsync(AirDataSourceConfiguration configuration);
     }
 }

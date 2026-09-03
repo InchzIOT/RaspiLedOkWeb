@@ -18,6 +18,9 @@ builder.Services.AddSingleton<IApiConfigurationService, ApiConfigurationService>
 // Register HTTP client and sync service
 builder.Services.AddHttpClient<ISyncService, SyncService>();
 
+// Register HTTP client and service for the AQICN (aqicn.org) alternative air data source
+builder.Services.AddHttpClient<IAqicnService, AqicnService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
