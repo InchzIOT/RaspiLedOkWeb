@@ -82,7 +82,7 @@ namespace RaspiLedOkWeb.Controllers
         }
 
         [ApiKeyAuth]
-        public async Task<IActionResult> IndexDemo()
+        public async Task<IActionResult> IndexZoom()
         {
             try
             {
@@ -95,7 +95,8 @@ namespace RaspiLedOkWeb.Controllers
                 var loginRes = await _syncService.AutoLogin();
                 if (!loginRes.Success)
                 {
-                    return View("ErrorPage");
+                    isLogin = false;
+                    _logger.LogWarning("AutoLogin failed for Home/IndexDemo: {Message}", loginRes.Message);
                 }
 
                 ViewBag.Height = (configRes.Screen.Height <= 0 ? 240 : configRes.Screen.Height) + "px";
@@ -126,7 +127,8 @@ namespace RaspiLedOkWeb.Controllers
                 var loginRes = await _syncService.AutoLogin();
                 if (!loginRes.Success)
                 {
-                    return View("ErrorPage");
+                    isLogin = false;
+                    _logger.LogWarning("AutoLogin failed for Home/Logo: {Message}", loginRes.Message);
                 }
                 ViewBag.Height = configRes.Screen.Height + "px";
                 ViewBag.Height = configRes.Screen.Width + "px";
@@ -137,7 +139,7 @@ namespace RaspiLedOkWeb.Controllers
                 _logger.LogError(ex, "Error in Home/Index");
                 return View("ErrorPage");
             }
-            
+
         }
 
         public async Task<IActionResult> Combine()
@@ -153,7 +155,8 @@ namespace RaspiLedOkWeb.Controllers
                 var loginRes = await _syncService.AutoLogin();
                 if (!loginRes.Success)
                 {
-                    return View("ErrorPage");
+                    isLogin = false;
+                    _logger.LogWarning("AutoLogin failed for Home/Combine: {Message}", loginRes.Message);
                 }
                 ViewBag.Height = configRes.Screen.Height + "px";
                 ViewBag.Height = configRes.Screen.Width + "px";
